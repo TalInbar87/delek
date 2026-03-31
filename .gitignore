@@ -1,0 +1,11 @@
+# Secrets — אל תעלה לגיט!
+.env
+config.js
+appScripts/unified/Config.js
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node
+node_modules/

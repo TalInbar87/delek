@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>בדיקת כרטיס תדלוק</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Heebo', sans-serif; }
+    .fade-in { animation: fadeIn 0.4s ease-out; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .spin { animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 min-h-screen flex flex-col items-center justify-center p-4">
+
+  <!-- Header -->
+  <div class="text-center mb-8 fade-in">
+    <div class="text-6xl mb-3">⛽</div>
+    <h1 class="text-white text-3xl font-black">כרטיס תדלוק</h1>
+    <p class="text-blue-300 mt-1 text-sm">הזן את מספר הכרטיס לבדיקת היתרה</p>
+  </div>
+
+  <!-- Search Card -->
+  <div class="w-full max-w-sm">
+    <div class="bg-white rounded-3xl shadow-2xl p-6 fade-in">
+      <form id="searchForm" class="space-y-4" onsubmit="searchCard(event)">
+        <div>
+          <label class="block text-gray-600 font-bold mb-2 text-sm">מספר כרטיס</label>
+          <input
+            id="cardInput"
+            type="text"
+            inputmode="numeric"
+            placeholder="לדוג׳: 1234"
+            autocomplete="off"
+            class="w-full px-4 py-4 text-xl font-bold text-center border-2 border-gray-200 rounded-2xl focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all"
+          />
+        </div>
+        <button
+          type="submit"
+          id="searchBtn"
+          class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-bold py-4 rounded-2xl text-lg transition-all shadow-lg shadow-blue-200"
+        >
+          בדוק יתרה
+        </button>
+      </form>
+    </div>
+
+    <!-- Result -->
+    <div id="result" class="mt-4 hidden fade-in"></div>
+
+    <!-- Error -->
+    <div id="errorBox" class="mt-4 hidden fade-in">
+      <div class="bg-red-50 border-2 border-red-200 rounded-2xl p-5 text-center">
+        <div class="text-3xl mb-2">❌</div>
+        <p id="errorText" class="text-red-700 font-bold"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <p class="text-blue-900 text-xs mt-8 opacity-50">
+    <a href="admin.html" class="hover:opacity-100 transition-opacity">ניהול</a>
+  </p>
+
+  <script src="config.js"></script>
+  <script>
+    async function searchCard(e) {
+      e.preventDefault();
+      const cn = document.getElementById('cardInput').value.trim();
+      if (!cn) return;
+
+      showLoading(true);
+      hideResult();
+
+      try {
+        const res = await fetch(API_URL, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ action: 'lookupCard', cardNumber: cn })
+        });
+        const data = await res.json();
+
+        if (data.found && data.card) {
+          showCard(data.card);
+        } else {
+          showError('כרטיס מספר ' + cn + ' לא נמצא במערכת');
+        }
+      } catch (err) {
+        showError('שגיאת תקשורת — נסה שנית');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    function showCard(card) {
+      const isBenzin  = card.fuelType === 'בנזין';
+      const badgeClass = isBenzin
+        ? 'bg-green-100 text-green-800 border-green-200'
+        : 'bg-amber-100 text-amber-800 border-amber-200';
+      const barClass  = isBenzin ? 'bg-green-500' : 'bg-amber-500';
+      const icon      = isBenzin ? '🟢' : '🟡';
+
+      // פס מילוי יחסי — נניח 800 ל׳ מקסימום לתצוגה
+      const maxLiters = 800;
+      const pct       = Math.min(100, Math.round((card.liters / maxLiters) * 100));
+      const litColor  = card.liters <= 50 ? 'text-red-600' : card.liters <= 150 ? 'text-amber-600' : 'text-gray-800';
+
+      const html = `
+        <div class="bg-white rounded-3xl shadow-2xl p-6 text-center">
+          <div class="text-4xl mb-1">${icon}</div>
+          <p class="text-gray-400 text-xs mb-4">כרטיס מספר <span class="font-bold text-gray-700">${card.cardNumber}</span></p>
+
+          <div class="inline-flex items-center gap-2 border-2 rounded-xl px-4 py-2 mb-5 ${badgeClass}">
+            <span class="font-bold text-base">${card.fuelType}</span>
+          </div>
+
+          <div class="mb-2">
+            <span class="text-5xl font-black ${litColor}">${card.liters.toLocaleString('he-IL')}</span>
+            <span class="text-gray-400 text-lg mr-1">ליטר</span>
+          </div>
+
+          <div class="w-full bg-gray-100 rounded-full h-3 mt-4 overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-700 ${barClass}" style="width:${pct}%"></div>
+          </div>
+          <p class="text-gray-400 text-xs mt-1">${pct}% מהמכסה המקסימלית</p>
+
+          ${card.notes ? `<p class="mt-4 text-gray-500 text-sm bg-gray-50 rounded-xl px-3 py-2">${card.notes}</p>` : ''}
+        </div>
+      `;
+
+      const el = document.getElementById('result');
+      el.innerHTML = html;
+      el.classList.remove('hidden');
+      document.getElementById('errorBox').classList.add('hidden');
+    }
+
+    function showError(msg) {
+      document.getElementById('errorText').textContent = msg;
+      document.getElementById('errorBox').classList.remove('hidden');
+      document.getElementById('result').classList.add('hidden');
+    }
+
+    function hideResult() {
+      document.getElementById('result').classList.add('hidden');
+      document.getElementById('errorBox').classList.add('hidden');
+    }
+
+    function showLoading(on) {
+      const btn = document.getElementById('searchBtn');
+      if (on) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full spin"></span>';
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = 'בדוק יתרה';
+      }
+    }
+  </script>
+</body>
+</html>

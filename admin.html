@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ניהול כרטיסי תדלוק</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Heebo', sans-serif; }
+    .fade-in { animation: fadeIn 0.35s ease-out; }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .spin { animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .badge-benzin { background:#dcfce7; color:#166534; }
+    .badge-soler  { background:#fef3c7; color:#92400e; }
+  </style>
+</head>
+<body class="bg-gray-950 min-h-screen">
+
+  <!-- ══════════════════════════════════════════
+       LOGIN SCREEN
+  ══════════════════════════════════════════ -->
+  <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-sm fade-in">
+      <div class="text-center mb-8">
+        <div class="text-5xl mb-3">🔐</div>
+        <h1 class="text-white text-2xl font-black">ניהול תדלוק</h1>
+        <p class="text-gray-400 text-sm mt-1">כניסה למנהלים בלבד</p>
+      </div>
+      <div class="bg-gray-900 border border-gray-800 rounded-3xl p-7 shadow-2xl">
+        <form id="loginForm" onsubmit="login(event)" class="space-y-4">
+          <div>
+            <label class="text-gray-400 text-sm font-bold block mb-2">סיסמת מנהל</label>
+            <input
+              id="passwordInput"
+              type="password"
+              placeholder="••••••••"
+              autocomplete="current-password"
+              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
+            />
+          </div>
+          <div id="loginError" class="hidden text-red-400 text-sm text-center font-bold"></div>
+          <button
+            type="submit"
+            id="loginBtn"
+            class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all text-lg"
+          >
+            כניסה
+          </button>
+        </form>
+      </div>
+      <div class="text-center mt-4">
+        <a href="index.html" class="text-gray-600 text-sm hover:text-gray-400 transition-colors">← חזרה לממשק המשתמש</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       ADMIN PANEL
+  ══════════════════════════════════════════ -->
+  <div id="adminPanel" class="hidden min-h-screen">
+
+    <!-- Top Bar -->
+    <header class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-2xl">⛽</span>
+        <span class="text-white font-bold text-lg">ניהול כרטיסי תדלוק</span>
+      </div>
+      <button onclick="logout()" class="text-gray-400 hover:text-white text-sm transition-colors flex items-center gap-1">
+        יציאה ↩
+      </button>
+    </header>
+
+    <main class="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+
+      <!-- Stats -->
+      <div id="statsBar" class="grid grid-cols-3 gap-3 fade-in">
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-center">
+          <p class="text-gray-400 text-xs mb-1">סה״כ כרטיסים</p>
+          <p id="statTotal" class="text-white text-2xl font-black">—</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-center">
+          <p class="text-gray-400 text-xs mb-1">כרטיסי בנזין</p>
+          <p id="statBenzin" class="text-green-400 text-2xl font-black">—</p>
+        </div>
+        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-center">
+          <p class="text-gray-400 text-xs mb-1">כרטיסי סולר</p>
+          <p id="statSoler" class="text-amber-400 text-2xl font-black">—</p>
+        </div>
+      </div>
+
+      <!-- Add Card Form -->
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 fade-in">
+        <h2 class="text-white font-bold mb-4 flex items-center gap-2">
+          <span class="text-green-400">＋</span> הוספת כרטיס חדש
+        </h2>
+        <form id="addForm" onsubmit="addCard(event)" class="grid grid-cols-2 md:grid-cols-4 gap-3">
+          <div class="col-span-2 md:col-span-1">
+            <label class="text-gray-400 text-xs block mb-1">מספר כרטיס</label>
+            <input
+              id="newCardNumber"
+              type="text"
+              inputmode="numeric"
+              placeholder="1234"
+              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              required
+            />
+          </div>
+          <div>
+            <label class="text-gray-400 text-xs block mb-1">סוג דלק</label>
+            <select
+              id="newFuelType"
+              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-500 transition-all"
+              required
+            >
+              <option value="">בחר...</option>
+              <option value="בנזין">⛽ בנזין</option>
+              <option value="סולר">🟡 סולר</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-gray-400 text-xs block mb-1">ליטרים</label>
+            <input
+              id="newLiters"
+              type="number"
+              min="0"
+              step="0.5"
+              placeholder="400"
+              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+              required
+            />
+          </div>
+          <div class="col-span-2 md:col-span-1">
+            <label class="text-gray-400 text-xs block mb-1">הערות (אופציונלי)</label>
+            <input
+              id="newNotes"
+              type="text"
+              placeholder="..."
+              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-500 transition-all"
+            />
+          </div>
+          <div class="col-span-2 md:col-span-4 flex items-center gap-3 mt-1">
+            <button
+              type="submit"
+              id="addBtn"
+              class="bg-green-600 hover:bg-green-500 text-white font-bold px-6 py-2.5 rounded-xl transition-all"
+            >
+              הוסף כרטיס
+            </button>
+            <span id="addMsg" class="text-sm font-bold hidden"></span>
+          </div>
+        </form>
+      </div>
+
+      <!-- Cards Table -->
+      <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden fade-in">
+        <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
+          <h2 class="text-white font-bold">כל הכרטיסים</h2>
+          <button
+            onclick="loadCards()"
+            id="refreshBtn"
+            class="text-gray-400 hover:text-white text-sm transition-colors"
+          >
+            רענן ↻
+          </button>
+        </div>
+
+        <!-- Loading -->
+        <div id="tableLoading" class="py-12 text-center text-gray-500">
+          <div class="inline-block w-6 h-6 border-2 border-gray-600 border-t-blue-400 rounded-full spin mb-2"></div>
+          <p class="text-sm">טוען נתונים...</p>
+        </div>
+
+        <!-- Table -->
+        <div id="tableWrap" class="hidden overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="text-gray-400 text-xs border-b border-gray-800">
+                <th class="px-4 py-3 text-right font-medium">מספר כרטיס</th>
+                <th class="px-4 py-3 text-right font-medium">סוג דלק</th>
+                <th class="px-4 py-3 text-right font-medium">ליטרים</th>
+                <th class="px-4 py-3 text-right font-medium">הערות</th>
+                <th class="px-4 py-3 text-right font-medium">פעולות</th>
+              </tr>
+            </thead>
+            <tbody id="cardsBody"></tbody>
+          </table>
+          <div id="emptyState" class="hidden py-12 text-center text-gray-600">
+            <p class="text-4xl mb-2">📋</p>
+            <p>אין כרטיסים במערכת עדיין</p>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       EDIT LITERS MODAL
+  ══════════════════════════════════════════ -->
+  <div id="editModal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
+    <div class="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-xs fade-in">
+      <h3 class="text-white font-bold mb-4">עדכון ליטרים</h3>
+      <p class="text-gray-400 text-sm mb-3">כרטיס: <span id="editCardNum" class="text-white font-bold"></span></p>
+      <input
+        id="editLitersInput"
+        type="number"
+        min="0"
+        step="0.5"
+        class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-xl text-center font-bold focus:outline-none focus:border-blue-500 mb-4"
+      />
+      <div class="flex gap-3">
+        <button onclick="saveEditLiters()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl transition-all">שמור</button>
+        <button onclick="closeEditModal()" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-bold py-2.5 rounded-xl transition-all">ביטול</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="config.js"></script>
+  <script>
+    let TOKEN    = localStorage.getItem('delek_token');
+    let editCard = null;
+
+    // ── Init ──
+    if (TOKEN) showPanel();
+
+    // ── Login ──
+    async function login(e) {
+      e.preventDefault();
+      const pw  = document.getElementById('passwordInput').value;
+      const err = document.getElementById('loginError');
+      const btn = document.getElementById('loginBtn');
+
+      err.classList.add('hidden');
+      btn.disabled = true;
+      btn.textContent = '...';
+
+      try {
+        const res  = await api({ action: 'adminLogin', password: pw });
+        if (res.error) { showLoginErr(res.error); return; }
+        TOKEN = res.token;
+        localStorage.setItem('delek_token', TOKEN);
+        showPanel();
+      } catch {
+        showLoginErr('שגיאת תקשורת');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'כניסה';
+      }
+    }
+
+    function showLoginErr(msg) {
+      const el = document.getElementById('loginError');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    // ── Panel ──
+    function showPanel() {
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('adminPanel').classList.remove('hidden');
+      loadCards();
+    }
+
+    function logout() {
+      localStorage.removeItem('delek_token');
+      TOKEN = null;
+      document.getElementById('adminPanel').classList.add('hidden');
+      document.getElementById('loginScreen').classList.remove('hidden');
+      document.getElementById('passwordInput').value = '';
+    }
+
+    // ── Load Cards ──
+    async function loadCards() {
+      document.getElementById('tableLoading').classList.remove('hidden');
+      document.getElementById('tableWrap').classList.add('hidden');
+
+      try {
+        const res = await api({ action: 'getCards', token: TOKEN });
+        if (res.error === 'אין הרשאה') { logout(); return; }
+        renderTable(res.cards || []);
+        updateStats(res.cards || []);
+      } catch {
+        document.getElementById('tableLoading').innerHTML =
+          '<p class="text-red-400 py-8">שגיאה בטעינת הנתונים</p>';
+      }
+    }
+
+    function renderTable(cards) {
+      const tbody = document.getElementById('cardsBody');
+      const empty = document.getElementById('emptyState');
+
+      document.getElementById('tableLoading').classList.add('hidden');
+      document.getElementById('tableWrap').classList.remove('hidden');
+
+      if (!cards.length) {
+        tbody.innerHTML = '';
+        empty.classList.remove('hidden');
+        return;
+      }
+      empty.classList.add('hidden');
+
+      tbody.innerHTML = cards.map(c => {
+        const badge = c.fuelType === 'בנזין'
+          ? '<span class="badge-benzin text-xs font-bold px-2 py-0.5 rounded-lg">בנזין</span>'
+          : '<span class="badge-soler text-xs font-bold px-2 py-0.5 rounded-lg">סולר</span>';
+        const litersColor = c.liters <= 50 ? 'text-red-400 font-bold' : c.liters <= 150 ? 'text-amber-400 font-bold' : 'text-white';
+        return `
+          <tr class="border-t border-gray-800/60 hover:bg-gray-800/30 transition-colors">
+            <td class="px-4 py-3 text-white font-bold">${c.cardNumber}</td>
+            <td class="px-4 py-3">${badge}</td>
+            <td class="px-4 py-3 ${litersColor}">${c.liters.toLocaleString('he-IL')} ל׳
+              <button onclick="openEditModal('${c.cardNumber}',${c.liters})" class="mr-2 text-gray-500 hover:text-blue-400 text-xs transition-colors">✏️</button>
+            </td>
+            <td class="px-4 py-3 text-gray-400 text-xs">${c.notes || '—'}</td>
+            <td class="px-4 py-3">
+              <button onclick="deleteCard('${c.cardNumber}')"
+                class="text-red-500 hover:text-red-300 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10">
+                מחק
+              </button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function updateStats(cards) {
+      document.getElementById('statTotal').textContent  = cards.length;
+      document.getElementById('statBenzin').textContent = cards.filter(c => c.fuelType === 'בנזין').length;
+      document.getElementById('statSoler').textContent  = cards.filter(c => c.fuelType === 'סולר').length;
+    }
+
+    // ── Add Card ──
+    async function addCard(e) {
+      e.preventDefault();
+      const btn = document.getElementById('addBtn');
+      const msg = document.getElementById('addMsg');
+      msg.classList.add('hidden');
+
+      const payload = {
+        action:     'addCard',
+        token:      TOKEN,
+        cardNumber: document.getElementById('newCardNumber').value.trim(),
+        fuelType:   document.getElementById('newFuelType').value,
+        liters:     parseFloat(document.getElementById('newLiters').value),
+        notes:      document.getElementById('newNotes').value.trim()
+      };
+
+      btn.disabled = true;
+      btn.textContent = '...';
+
+      try {
+        const res = await api(payload);
+        if (res.error) {
+          showAddMsg(res.error, 'text-red-400');
+        } else {
+          document.getElementById('addForm').reset();
+          showAddMsg('✅ הכרטיס נוסף בהצלחה', 'text-green-400');
+          loadCards();
+        }
+      } catch {
+        showAddMsg('שגיאת תקשורת', 'text-red-400');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'הוסף כרטיס';
+      }
+    }
+
+    function showAddMsg(text, cls) {
+      const el = document.getElementById('addMsg');
+      el.className = 'text-sm font-bold ' + cls;
+      el.textContent = text;
+      el.classList.remove('hidden');
+      setTimeout(() => el.classList.add('hidden'), 3500);
+    }
+
+    // ── Delete Card ──
+    async function deleteCard(cn) {
+      if (!confirm('למחוק את כרטיס ' + cn + '?')) return;
+      try {
+        const res = await api({ action: 'deleteCard', token: TOKEN, cardNumber: cn });
+        if (res.error) { alert(res.error); return; }
+        loadCards();
+      } catch {
+        alert('שגיאת תקשורת');
+      }
+    }
+
+    // ── Edit Liters Modal ──
+    function openEditModal(cn, liters) {
+      editCard = cn;
+      document.getElementById('editCardNum').textContent   = cn;
+      document.getElementById('editLitersInput').value     = liters;
+      document.getElementById('editModal').classList.remove('hidden');
+    }
+
+    function closeEditModal() {
+      editCard = null;
+      document.getElementById('editModal').classList.add('hidden');
+    }
+
+    async function saveEditLiters() {
+      const liters = parseFloat(document.getElementById('editLitersInput').value);
+      if (isNaN(liters) || liters < 0) { alert('ערך לא תקין'); return; }
+      try {
+        const res = await api({ action: 'updateLiters', token: TOKEN, cardNumber: editCard, liters });
+        if (res.error) { alert(res.error); return; }
+        closeEditModal();
+        loadCards();
+      } catch {
+        alert('שגיאת תקשורת');
+      }
+    }
+
+    // ── API Helper ──
+    async function api(body) {
+      const res = await fetch(API_URL, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(body)
+      });
+      return res.json();
+    }
+  </script>
+</body>
+</html>
