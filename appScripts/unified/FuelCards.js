@@ -132,4 +132,50 @@ class FuelCardsManager {
     }
     throw new Error('כרטיס ' + cardNumber + ' לא נמצא');
   }
+
+  // ── תדלוק — מנכה ליטרים ומתעד (ציבורי) ──
+  static logFueling(cardNumber, driverName, liters) {
+    const sheet = this._getSheet();
+    const rows  = sheet.getDataRange().getValues();
+    const cn    = cardNumber.toString().trim();
+    const amt   = parseFloat(liters);
+
+    if (isNaN(amt) || amt <= 0) throw new Error('כמות ליטרים לא תקינה');
+    if (!driverName || !driverName.toString().trim()) throw new Error('חסר שם מתדלק');
+
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString().trim() === cn) {
+        const remaining = parseFloat(rows[i][2]) || 0;
+        if (amt > remaining) {
+          throw new Error('אין מספיק ליטרים בכרטיס (נותרו ' + remaining + ' ל׳)');
+        }
+        const newRemaining = Math.round((remaining - amt) * 10) / 10;
+        sheet.getRange(i + 1, 3).setValue(newRemaining);
+        this._logToHistory(cn, rows[i][1], driverName.toString().trim(), amt, newRemaining);
+        return { remaining: newRemaining, fuelType: rows[i][1] };
+      }
+    }
+    throw new Error('כרטיס ' + cardNumber + ' לא נמצא');
+  }
+
+  // ── גיליון היסטוריית תדלוקים ──
+  static _getLogSheet() {
+    const ss = SpreadsheetApp.openById(CONFIG.SHEETS.MAIN);
+    let sheet = ss.getSheetByName('תדלוקים');
+    if (!sheet) {
+      sheet = ss.insertSheet('תדלוקים');
+      sheet.appendRow(['תאריך', 'מספר כרטיס', 'סוג דלק', 'שם מתדלק', 'ליטרים שתודלקו', 'יתרה לאחר תדלוק']);
+      const hr = sheet.getRange(1, 1, 1, 6);
+      hr.setBackground('#1a73e8');
+      hr.setFontColor('#FFFFFF');
+      hr.setFontWeight('bold');
+      hr.setHorizontalAlignment('center');
+    }
+    return sheet;
+  }
+
+  static _logToHistory(cardNumber, fuelType, driverName, liters, remaining) {
+    const logSheet = this._getLogSheet();
+    logSheet.appendRow([new Date(), cardNumber, fuelType, driverName, liters, remaining]);
+  }
 }

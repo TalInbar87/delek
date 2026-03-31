@@ -106,6 +106,14 @@ function doPost(e) {
         return _json({ success: true });
       }
 
+      case 'logFueling': {
+        if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
+        if (!data.driverName) return _json({ error: 'חסר שם מתדלק' });
+        if (!data.liters)     return _json({ error: 'חסר כמות ליטרים' });
+        const result = FuelCardsManager.logFueling(data.cardNumber, data.driverName, data.liters);
+        return _json({ success: true, remaining: result.remaining, fuelType: result.fuelType });
+      }
+
       default:
         return _json({ error: 'Unknown action: ' + data.action });
     }
