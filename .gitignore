@@ -10,3 +10,6 @@ Thumbs.db
 # Node
 node_modules/
 .vercel
+
+# Claude Code (local dev tool config)
+.claude/
