@@ -109,14 +109,8 @@ bash build.sh
 # ────────────────────────────────────────────────
 cd "$REPO_DIR"
 
-# Stage כל הקבצים הרלוונטיים (ללא gitignored: .env, config.js, Config.js)
-git add index.html admin.html config.example.js build.sh deploy.sh .env.example .gitignore
-git add vercel.json 2>/dev/null || true
-git add appScripts/unified/Auth.js \
-        appScripts/unified/FuelCards.js \
-        appScripts/unified/Main.js \
-        appScripts/unified/appsscript.json \
-        appScripts/unified/.clasp.json
+# Stage הכל (ללא קבצים ב-.gitignore: .env, config.js, Config.js, .claude/)
+git add -A
 
 # בדוק אם יש שינויים staged אחרי ה-add
 if git diff --cached --quiet; then
