@@ -10,11 +10,11 @@ if [ -z "$GAS_URL" ]; then
   exit 1
 fi
 
+CLEAN_URL=$(printf '%s' "$GAS_URL" | tr -d '\n\r ')
+
 cat > config.js <<EOF
-// ================================================================
-// config.js — Auto-generated at build time. DO NOT EDIT MANUALLY.
-// ================================================================
-const API_URL = '$GAS_URL';
+// Auto-generated at build time. DO NOT EDIT MANUALLY.
+const API_URL = '${CLEAN_URL}';
 EOF
 
 echo "✅ config.js generated"

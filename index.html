@@ -81,7 +81,7 @@
       try {
         const res = await fetch(API_URL, {
           method:  'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'text/plain' },
           body:    JSON.stringify({ action: 'lookupCard', cardNumber: cn })
         });
         const data = await res.json();
