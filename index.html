@@ -5,123 +5,165 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>כרטיסי תדלוק</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <style>
     * { font-family: 'Heebo', sans-serif; }
+
+    body {
+      background: radial-gradient(ellipse at top, #0f2444 0%, #030712 65%);
+      min-height: 100vh;
+    }
+
     .fade-in { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
+      from { opacity: 0; transform: translateY(12px); }
       to   { opacity: 1; transform: translateY(0); }
     }
+
     .spin { animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .tab-btn {
+      flex: 1;
+      padding: 14px 0;
+      font-size: 14px;
+      font-weight: 700;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+      color: #6b7280;
+    }
+    .tab-btn.active {
+      color: #60a5fa;
+      border-bottom-color: #3b82f6;
+    }
+
+    .input-field {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      color: #fff;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 16px;
+      transition: all 0.2s;
+      outline: none;
+      -webkit-appearance: none;
+    }
+    .input-field::placeholder { color: #4b5563; }
+    .input-field:focus {
+      border-color: #3b82f6;
+      background: rgba(59,130,246,0.08);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+
+    .btn-primary {
+      width: 100%;
+      background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white;
+      font-weight: 800;
+      font-size: 16px;
+      padding: 15px;
+      border-radius: 14px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s;
+      box-shadow: 0 4px 20px rgba(37,99,235,0.35);
+      letter-spacing: 0.3px;
+    }
+    .btn-primary:hover   { background: linear-gradient(135deg, #3b82f6, #2563eb); transform: translateY(-1px); box-shadow: 0 6px 24px rgba(37,99,235,0.45); }
+    .btn-primary:active  { transform: translateY(0); box-shadow: 0 2px 12px rgba(37,99,235,0.3); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 24px;
+      backdrop-filter: blur(10px);
+    }
+
+    .result-success {
+      background: linear-gradient(135deg, rgba(5,46,22,0.8), rgba(5,46,22,0.5));
+      border: 1px solid rgba(34,197,94,0.3);
+      border-radius: 18px;
+      padding: 20px;
+      text-align: center;
+    }
+    .result-error {
+      background: rgba(69,10,10,0.7);
+      border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 18px;
+      padding: 16px;
+      text-align: center;
+    }
   </style>
 </head>
-<body class="bg-gray-950 min-h-screen flex flex-col">
+<body class="flex flex-col min-h-screen">
 
   <!-- Header -->
-  <header class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <span class="text-2xl">⛽</span>
-      <span class="text-white font-bold text-lg">כרטיסי תדלוק</span>
+  <header class="px-5 py-4 flex items-center justify-between border-b border-white/5">
+    <div class="flex items-center gap-2.5">
+      <span class="text-xl">⛽</span>
+      <span class="text-white font-bold text-base">כרטיסי תדלוק</span>
     </div>
     <a href="admin.html" class="text-gray-600 text-xs hover:text-gray-400 transition-colors">ניהול</a>
   </header>
 
   <!-- Tabs -->
-  <div class="flex bg-gray-900 border-b border-gray-800">
-    <button
-      id="tabFuel"
-      onclick="switchTab('fuel')"
-      class="flex-1 py-3 text-sm font-bold transition-all border-b-2 border-blue-500 text-blue-400"
-    >
-      ⛽ תדלוק
-    </button>
-    <button
-      id="tabBalance"
-      onclick="switchTab('balance')"
-      class="flex-1 py-3 text-sm font-bold transition-all border-b-2 border-transparent text-gray-500"
-    >
-      🔍 בדיקת יתרה
-    </button>
+  <div class="flex border-b border-white/5 bg-black/20">
+    <button id="tabFuel"    onclick="switchTab('fuel')"    class="tab-btn active">⛽ תדלוק</button>
+    <button id="tabBalance" onclick="switchTab('balance')" class="tab-btn">🔍 בדיקת יתרה</button>
   </div>
 
-  <main class="flex-1 flex items-start justify-center p-4 pt-8">
-    <div class="w-full max-w-sm">
+  <main class="flex-1 flex items-start justify-center p-4 pt-6">
+    <div class="w-full max-w-sm space-y-3">
 
       <!-- ══ TAB: תדלוק ══ -->
-      <div id="panelFuel" class="fade-in space-y-4">
-        <p class="text-gray-400 text-sm text-center">מלא את הפרטים לאחר תדלוק</p>
+      <div id="panelFuel" class="fade-in space-y-3">
 
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
+        <p class="text-gray-500 text-sm text-center py-1">מלא את הפרטים לאחר תדלוק</p>
 
-          <div>
-            <label class="text-gray-400 text-xs font-bold block mb-1.5">מספר כרטיס</label>
-            <input
-              id="fuelCard"
-              type="text"
-              inputmode="numeric"
-              placeholder="1234"
-              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
-            />
+        <div class="card space-y-4">
+
+          <div class="space-y-1.5">
+            <label class="text-gray-400 text-xs font-semibold block">מספר כרטיס</label>
+            <input id="fuelCard" type="text" inputmode="numeric" placeholder="לדוג׳: 1234"
+              class="input-field" autocomplete="off" />
           </div>
 
-          <div>
-            <label class="text-gray-400 text-xs font-bold block mb-1.5">שם המתדלק</label>
-            <input
-              id="fuelDriver"
-              type="text"
-              placeholder="ישראל ישראלי"
-              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
-            />
+          <div class="space-y-1.5">
+            <label class="text-gray-400 text-xs font-semibold block">שם המתדלק</label>
+            <input id="fuelDriver" type="text" placeholder="ישראל ישראלי"
+              class="input-field" autocomplete="off" />
           </div>
 
-          <div>
-            <label class="text-gray-400 text-xs font-bold block mb-1.5">כמות ליטרים שתודלקה</label>
-            <input
-              id="fuelLiters"
-              type="number"
-              inputmode="decimal"
-              min="0.5"
-              step="0.5"
-              placeholder="50"
-              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
-            />
+          <div class="space-y-1.5">
+            <label class="text-gray-400 text-xs font-semibold block">כמות ליטרים שתודלקה</label>
+            <input id="fuelLiters" type="number" inputmode="decimal" min="0.5" step="0.5" placeholder="50"
+              class="input-field" />
           </div>
 
-          <button
-            id="fuelBtn"
-            onclick="submitFueling()"
-            class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all text-base"
-          >
+          <button id="fuelBtn" onclick="submitFueling()" class="btn-primary" style="margin-top:4px">
             אשר תדלוק
           </button>
+
         </div>
 
         <div id="fuelResult" class="hidden fade-in"></div>
       </div>
 
       <!-- ══ TAB: בדיקת יתרה ══ -->
-      <div id="panelBalance" class="hidden fade-in space-y-4">
-        <p class="text-gray-400 text-sm text-center">הזן מספר כרטיס לבדיקת יתרת ליטרים</p>
+      <div id="panelBalance" class="hidden fade-in space-y-3">
 
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-6 space-y-4">
-          <div>
-            <label class="text-gray-400 text-xs font-bold block mb-1.5">מספר כרטיס</label>
-            <input
-              id="balanceCard"
-              type="text"
-              inputmode="numeric"
-              placeholder="1234"
-              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
-            />
+        <p class="text-gray-500 text-sm text-center py-1">הזן מספר כרטיס לבדיקת יתרת ליטרים</p>
+
+        <div class="card space-y-4">
+          <div class="space-y-1.5">
+            <label class="text-gray-400 text-xs font-semibold block">מספר כרטיס</label>
+            <input id="balanceCard" type="text" inputmode="numeric" placeholder="לדוג׳: 1234"
+              class="input-field" autocomplete="off" />
           </div>
-
-          <button
-            id="balanceBtn"
-            onclick="checkBalance()"
-            class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all text-base"
-          >
+          <button id="balanceBtn" onclick="checkBalance()" class="btn-primary" style="margin-top:4px">
             בדוק יתרה
           </button>
         </div>
@@ -138,8 +180,8 @@
     // ── Tabs ──
     function switchTab(tab) {
       const isFuel = tab === 'fuel';
-      document.getElementById('tabFuel').className    = 'flex-1 py-3 text-sm font-bold transition-all border-b-2 ' + (isFuel  ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-500');
-      document.getElementById('tabBalance').className = 'flex-1 py-3 text-sm font-bold transition-all border-b-2 ' + (!isFuel ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-500');
+      document.getElementById('tabFuel').className    = 'tab-btn ' + (isFuel  ? 'active' : '');
+      document.getElementById('tabBalance').className = 'tab-btn ' + (!isFuel ? 'active' : '');
       document.getElementById('panelFuel').classList.toggle('hidden',   !isFuel);
       document.getElementById('panelBalance').classList.toggle('hidden', isFuel);
       document.getElementById('fuelResult').classList.add('hidden');
@@ -154,12 +196,11 @@
       const btn    = document.getElementById('fuelBtn');
       const result = document.getElementById('fuelResult');
 
-      if (!card)                        return showResult(result, 'error', 'נא להזין מספר כרטיס');
-      if (!driver)                      return showResult(result, 'error', 'נא להזין שם מתדלק');
+      if (!card)                              return showResult(result, 'error', 'נא להזין מספר כרטיס');
+      if (!driver)                            return showResult(result, 'error', 'נא להזין שם מתדלק');
       if (!liters || isNaN(liters) || liters <= 0) return showResult(result, 'error', 'נא להזין כמות ליטרים תקינה');
 
-      btn.disabled    = true;
-      btn.textContent = '...';
+      setLoading(btn, true, 'מבצע...');
       result.classList.add('hidden');
 
       try {
@@ -169,10 +210,14 @@
         } else {
           const badge = fuelBadge(res.fuelType);
           result.innerHTML = `
-            <div class="bg-green-950 border border-green-800 rounded-2xl p-5 text-center space-y-2">
-              <p class="text-green-400 font-black text-lg">✅ תדלוק בוצע בהצלחה</p>
-              <p class="text-gray-300 text-sm">כרטיס <span class="text-white font-bold">${card}</span> ${badge}</p>
-              <p class="text-white text-3xl font-black">${res.remaining.toLocaleString('he-IL')} <span class="text-gray-400 text-sm font-normal">ל׳ נותרו</span></p>
+            <div class="result-success fade-in">
+              <div class="text-3xl mb-2">✅</div>
+              <p class="text-green-300 font-black text-lg mb-1">תדלוק בוצע בהצלחה</p>
+              <p class="text-gray-400 text-sm mb-3">כרטיס <span class="text-white font-bold">${card}</span> &nbsp;${badge}</p>
+              <div class="bg-black/30 rounded-2xl py-3 px-4 inline-block">
+                <span class="text-white text-3xl font-black">${res.remaining.toLocaleString('he-IL')}</span>
+                <span class="text-gray-400 text-sm mr-1">ל׳ נותרו</span>
+              </div>
             </div>`;
           result.classList.remove('hidden');
           document.getElementById('fuelCard').value   = '';
@@ -180,10 +225,9 @@
           document.getElementById('fuelLiters').value  = '';
         }
       } catch {
-        showResult(result, 'error', 'שגיאת תקשורת, נסה שנית');
+        showResult(result, 'error', 'שגיאת תקשורת — נסה שנית');
       } finally {
-        btn.disabled    = false;
-        btn.textContent = 'אשר תדלוק';
+        setLoading(btn, false, 'אשר תדלוק');
       }
     }
 
@@ -195,8 +239,7 @@
 
       if (!card) return showResult(result, 'error', 'נא להזין מספר כרטיס');
 
-      btn.disabled    = true;
-      btn.textContent = '...';
+      setLoading(btn, true, 'בודק...');
       result.classList.add('hidden');
 
       try {
@@ -206,21 +249,22 @@
         } else {
           const c     = res.card;
           const badge = fuelBadge(c.fuelType);
-          const color = c.liters <= 50 ? 'text-red-400' : c.liters <= 150 ? 'text-amber-400' : 'text-white';
+          const color = c.liters <= 50 ? '#f87171' : c.liters <= 150 ? '#fbbf24' : '#ffffff';
+          const warn  = c.liters <= 50 ? '<p class="text-red-400 text-xs font-bold mt-2">⚠️ יתרה נמוכה!</p>' : '';
           result.innerHTML = `
-            <div class="bg-gray-900 border border-gray-700 rounded-2xl p-5 text-center space-y-2">
-              <p class="text-gray-400 text-sm">כרטיס <span class="text-white font-bold">${c.cardNumber}</span> ${badge}</p>
-              <p class="${color} text-5xl font-black">${c.liters.toLocaleString('he-IL')}</p>
+            <div class="card text-center fade-in">
+              <p class="text-gray-500 text-sm mb-1">כרטיס <span class="text-gray-200 font-bold">${c.cardNumber}</span> &nbsp;${badge}</p>
+              <p style="color:${color}" class="text-6xl font-black my-3">${c.liters.toLocaleString('he-IL')}</p>
               <p class="text-gray-500 text-sm">ליטרים שנותרו</p>
-              ${c.notes ? `<p class="text-gray-600 text-xs mt-1">${c.notes}</p>` : ''}
+              ${warn}
+              ${c.notes ? `<p class="text-gray-600 text-xs mt-3 bg-white/5 rounded-xl px-3 py-2">${c.notes}</p>` : ''}
             </div>`;
           result.classList.remove('hidden');
         }
       } catch {
-        showResult(result, 'error', 'שגיאת תקשורת, נסה שנית');
+        showResult(result, 'error', 'שגיאת תקשורת — נסה שנית');
       } finally {
-        btn.disabled    = false;
-        btn.textContent = 'בדוק יתרה';
+        setLoading(btn, false, 'בדוק יתרה');
       }
     }
 
@@ -234,14 +278,22 @@
     // ── Helpers ──
     function fuelBadge(type) {
       return type === 'בנזין'
-        ? '<span class="bg-green-900 text-green-300 text-xs font-bold px-2 py-0.5 rounded-lg">בנזין</span>'
-        : '<span class="bg-amber-900 text-amber-300 text-xs font-bold px-2 py-0.5 rounded-lg">סולר</span>';
+        ? '<span style="background:rgba(20,83,45,0.7);color:#86efac;font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;border:1px solid rgba(34,197,94,0.3)">בנזין</span>'
+        : '<span style="background:rgba(78,53,0,0.7);color:#fcd34d;font-size:11px;font-weight:700;padding:2px 8px;border-radius:8px;border:1px solid rgba(251,191,36,0.3)">סולר</span>';
     }
 
     function showResult(el, type, msg) {
-      const err = type === 'error';
-      el.innerHTML = `<div class="${err ? 'bg-red-950 border-red-800 text-red-400' : 'bg-green-950 border-green-800 text-green-400'} border rounded-2xl p-4 text-center font-bold text-sm">${msg}</div>`;
+      if (type === 'error') {
+        el.innerHTML = `<div class="result-error"><p class="text-red-400 font-bold text-sm">${msg}</p></div>`;
+      }
       el.classList.remove('hidden');
+    }
+
+    function setLoading(btn, on, label) {
+      btn.disabled = on;
+      btn.innerHTML = on
+        ? '<span class="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full spin"></span>'
+        : label;
     }
 
     async function api(body) {

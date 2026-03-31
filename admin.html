@@ -5,50 +5,91 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ניהול כרטיסי תדלוק</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <style>
     * { font-family: 'Heebo', sans-serif; }
-    .fade-in { animation: fadeIn 0.35s ease-out; }
+
+    body {
+      background: radial-gradient(ellipse at top, #0f1f3d 0%, #030712 65%);
+      min-height: 100vh;
+    }
+
+    .fade-in { animation: fadeIn 0.3s ease-out; }
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(12px); }
+      from { opacity: 0; transform: translateY(10px); }
       to   { opacity: 1; transform: translateY(0); }
     }
     .spin { animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-    .badge-benzin { background:#dcfce7; color:#166534; }
-    .badge-soler  { background:#fef3c7; color:#92400e; }
+
+    .input-field {
+      width: 100%;
+      background: rgba(255,255,255,0.05);
+      border: 1.5px solid rgba(255,255,255,0.1);
+      color: #fff;
+      border-radius: 12px;
+      padding: 10px 14px;
+      font-size: 15px;
+      outline: none;
+      transition: all 0.2s;
+      -webkit-appearance: none;
+    }
+    .input-field::placeholder { color: #4b5563; }
+    .input-field:focus {
+      border-color: #3b82f6;
+      background: rgba(59,130,246,0.08);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+    }
+
+    select.input-field option { background: #1f2937; }
+
+    .btn-green {
+      background: linear-gradient(135deg, #16a34a, #15803d);
+      color: white; font-weight: 700; font-size: 15px;
+      padding: 11px 20px; border-radius: 12px; border: none;
+      cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(22,163,74,0.3);
+      white-space: nowrap;
+    }
+    .btn-green:hover   { background: linear-gradient(135deg, #22c55e, #16a34a); }
+    .btn-green:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .card {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 18px;
+      backdrop-filter: blur(8px);
+    }
+
+    .badge-benzin { background: rgba(20,83,45,0.7); color: #86efac; border: 1px solid rgba(34,197,94,0.25); }
+    .badge-soler  { background: rgba(78,53,0,0.7);  color: #fcd34d; border: 1px solid rgba(251,191,36,0.25); }
+    .badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
   </style>
 </head>
-<body class="bg-gray-950 min-h-screen">
+<body>
 
   <!-- ══════════════════════════════════════════
        LOGIN SCREEN
   ══════════════════════════════════════════ -->
   <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
-    <div class="w-full max-w-sm fade-in">
+    <div class="w-full max-w-xs fade-in">
       <div class="text-center mb-8">
         <div class="text-5xl mb-3">🔐</div>
         <h1 class="text-white text-2xl font-black">ניהול תדלוק</h1>
-        <p class="text-gray-400 text-sm mt-1">כניסה למנהלים בלבד</p>
+        <p class="text-gray-500 text-sm mt-1">כניסה למנהלים בלבד</p>
       </div>
-      <div class="bg-gray-900 border border-gray-800 rounded-3xl p-7 shadow-2xl">
+      <div class="card p-7">
         <form id="loginForm" onsubmit="login(event)" class="space-y-4">
           <div>
-            <label class="text-gray-400 text-sm font-bold block mb-2">סיסמת מנהל</label>
-            <input
-              id="passwordInput"
-              type="password"
-              placeholder="••••••••"
+            <label class="text-gray-400 text-xs font-semibold block mb-2">סיסמת מנהל</label>
+            <input id="passwordInput" type="password" placeholder="••••••••"
               autocomplete="current-password"
-              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30 transition-all"
+              class="input-field text-lg tracking-widest"
             />
           </div>
           <div id="loginError" class="hidden text-red-400 text-sm text-center font-bold"></div>
-          <button
-            type="submit"
-            id="loginBtn"
-            class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition-all text-lg"
-          >
+          <button type="submit" id="loginBtn"
+            style="width:100%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:800;font-size:16px;padding:14px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(37,99,235,0.35);transition:all 0.2s">
             כניסה
           </button>
         </form>
@@ -65,133 +106,103 @@
   <div id="adminPanel" class="hidden min-h-screen">
 
     <!-- Top Bar -->
-    <header class="bg-gray-900 border-b border-gray-800 px-6 py-4 flex items-center justify-between">
-      <div class="flex items-center gap-3">
-        <span class="text-2xl">⛽</span>
-        <span class="text-white font-bold text-lg">ניהול כרטיסי תדלוק</span>
+    <header class="border-b border-white/5 px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <span class="text-xl">⛽</span>
+        <span class="text-white font-bold text-base">ניהול כרטיסי תדלוק</span>
       </div>
-      <button onclick="logout()" class="text-gray-400 hover:text-white text-sm transition-colors flex items-center gap-1">
-        יציאה ↩
-      </button>
+      <button onclick="logout()" class="text-gray-500 hover:text-white text-sm transition-colors">יציאה ↩</button>
     </header>
 
-    <main class="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+    <main class="max-w-4xl mx-auto p-3 sm:p-6 space-y-4">
 
       <!-- Stats -->
-      <div id="statsBar" class="grid grid-cols-3 gap-3 fade-in">
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-center">
-          <p class="text-gray-400 text-xs mb-1">סה״כ כרטיסים</p>
-          <p id="statTotal" class="text-white text-2xl font-black">—</p>
+      <div id="statsBar" class="grid grid-cols-3 gap-2 sm:gap-3 fade-in">
+        <div class="card p-3 sm:p-4 text-center">
+          <p class="text-gray-500 text-xs mb-1">סה״כ כרטיסים</p>
+          <p id="statTotal" class="text-white text-xl sm:text-2xl font-black">—</p>
         </div>
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-center">
-          <p class="text-gray-400 text-xs mb-1">כרטיסי בנזין</p>
-          <p id="statBenzin" class="text-green-400 text-2xl font-black">—</p>
+        <div class="card p-3 sm:p-4 text-center">
+          <p class="text-gray-500 text-xs mb-1">בנזין</p>
+          <p id="statBenzin" class="text-green-400 text-xl sm:text-2xl font-black">—</p>
         </div>
-        <div class="bg-gray-900 border border-gray-800 rounded-2xl p-4 text-center">
-          <p class="text-gray-400 text-xs mb-1">כרטיסי סולר</p>
-          <p id="statSoler" class="text-amber-400 text-2xl font-black">—</p>
+        <div class="card p-3 sm:p-4 text-center">
+          <p class="text-gray-500 text-xs mb-1">סולר</p>
+          <p id="statSoler" class="text-amber-400 text-xl sm:text-2xl font-black">—</p>
         </div>
       </div>
 
       <!-- Add Card Form -->
-      <div class="bg-gray-900 border border-gray-800 rounded-2xl p-5 fade-in">
-        <h2 class="text-white font-bold mb-4 flex items-center gap-2">
-          <span class="text-green-400">＋</span> הוספת כרטיס חדש
+      <div class="card p-4 sm:p-5 fade-in">
+        <h2 class="text-white font-bold mb-4 text-sm flex items-center gap-1.5">
+          <span class="text-green-400 text-base">＋</span> הוספת כרטיס חדש
         </h2>
-        <form id="addForm" onsubmit="addCard(event)" class="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div class="col-span-2 md:col-span-1">
-            <label class="text-gray-400 text-xs block mb-1">מספר כרטיס</label>
-            <input
-              id="newCardNumber"
-              type="text"
-              inputmode="numeric"
-              placeholder="1234"
-              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-              required
-            />
+        <form id="addForm" onsubmit="addCard(event)" class="space-y-3">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="text-gray-400 text-xs font-semibold block mb-1.5">מספר כרטיס</label>
+              <input id="newCardNumber" type="text" inputmode="numeric" placeholder="1234"
+                class="input-field" required />
+            </div>
+            <div>
+              <label class="text-gray-400 text-xs font-semibold block mb-1.5">סוג דלק</label>
+              <select id="newFuelType" class="input-field" required>
+                <option value="">בחר...</option>
+                <option value="בנזין">⛽ בנזין</option>
+                <option value="סולר">🟡 סולר</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-gray-400 text-xs font-semibold block mb-1.5">ליטרים</label>
+              <input id="newLiters" type="number" min="0" step="0.5" placeholder="400"
+                class="input-field" required />
+            </div>
+            <div>
+              <label class="text-gray-400 text-xs font-semibold block mb-1.5">הערות (אופציונלי)</label>
+              <input id="newNotes" type="text" placeholder="..."
+                class="input-field" />
+            </div>
           </div>
-          <div>
-            <label class="text-gray-400 text-xs block mb-1">סוג דלק</label>
-            <select
-              id="newFuelType"
-              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-500 transition-all"
-              required
-            >
-              <option value="">בחר...</option>
-              <option value="בנזין">⛽ בנזין</option>
-              <option value="סולר">🟡 סולר</option>
-            </select>
-          </div>
-          <div>
-            <label class="text-gray-400 text-xs block mb-1">ליטרים</label>
-            <input
-              id="newLiters"
-              type="number"
-              min="0"
-              step="0.5"
-              placeholder="400"
-              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-              required
-            />
-          </div>
-          <div class="col-span-2 md:col-span-1">
-            <label class="text-gray-400 text-xs block mb-1">הערות (אופציונלי)</label>
-            <input
-              id="newNotes"
-              type="text"
-              placeholder="..."
-              class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-3 py-2.5 focus:outline-none focus:border-blue-500 transition-all"
-            />
-          </div>
-          <div class="col-span-2 md:col-span-4 flex items-center gap-3 mt-1">
-            <button
-              type="submit"
-              id="addBtn"
-              class="bg-green-600 hover:bg-green-500 text-white font-bold px-6 py-2.5 rounded-xl transition-all"
-            >
-              הוסף כרטיס
-            </button>
+          <div class="flex items-center gap-3 pt-1">
+            <button type="submit" id="addBtn" class="btn-green">הוסף כרטיס</button>
             <span id="addMsg" class="text-sm font-bold hidden"></span>
           </div>
         </form>
       </div>
 
       <!-- Cards Table -->
-      <div class="bg-gray-900 border border-gray-800 rounded-2xl overflow-hidden fade-in">
-        <div class="px-5 py-4 border-b border-gray-800 flex items-center justify-between">
-          <h2 class="text-white font-bold">כל הכרטיסים</h2>
-          <button
-            onclick="loadCards()"
-            id="refreshBtn"
-            class="text-gray-400 hover:text-white text-sm transition-colors"
-          >
+      <div class="card overflow-hidden fade-in">
+        <div class="px-4 sm:px-5 py-4 border-b border-white/5 flex items-center justify-between">
+          <h2 class="text-white font-bold text-sm">כל הכרטיסים</h2>
+          <button onclick="loadCards()" id="refreshBtn"
+            class="text-gray-500 hover:text-white text-sm transition-colors">
             רענן ↻
           </button>
         </div>
 
         <!-- Loading -->
-        <div id="tableLoading" class="py-12 text-center text-gray-500">
-          <div class="inline-block w-6 h-6 border-2 border-gray-600 border-t-blue-400 rounded-full spin mb-2"></div>
+        <div id="tableLoading" class="py-12 text-center text-gray-600">
+          <div class="inline-block w-6 h-6 border-2 border-gray-700 border-t-blue-400 rounded-full spin mb-2"></div>
           <p class="text-sm">טוען נתונים...</p>
         </div>
 
-        <!-- Table -->
+        <!-- Table (scrollable on mobile) -->
         <div id="tableWrap" class="hidden overflow-x-auto">
-          <table class="w-full text-sm">
+          <table class="w-full text-sm" style="min-width:420px">
             <thead>
-              <tr class="text-gray-400 text-xs border-b border-gray-800">
-                <th class="px-4 py-3 text-right font-medium">מספר כרטיס</th>
-                <th class="px-4 py-3 text-right font-medium">סוג דלק</th>
-                <th class="px-4 py-3 text-right font-medium">ליטרים</th>
-                <th class="px-4 py-3 text-right font-medium">הערות</th>
-                <th class="px-4 py-3 text-right font-medium">פעולות</th>
+              <tr class="border-b border-white/5">
+                <th class="px-4 py-3 text-right text-gray-500 text-xs font-semibold">מספר כרטיס</th>
+                <th class="px-4 py-3 text-right text-gray-500 text-xs font-semibold">סוג</th>
+                <th class="px-4 py-3 text-right text-gray-500 text-xs font-semibold">ליטרים</th>
+                <th class="px-4 py-3 text-right text-gray-500 text-xs font-semibold">הערות</th>
+                <th class="px-4 py-3 text-right text-gray-500 text-xs font-semibold">פעולות</th>
               </tr>
             </thead>
             <tbody id="cardsBody"></tbody>
           </table>
           <div id="emptyState" class="hidden py-12 text-center text-gray-600">
             <p class="text-4xl mb-2">📋</p>
-            <p>אין כרטיסים במערכת עדיין</p>
+            <p class="text-sm">אין כרטיסים במערכת עדיין</p>
           </div>
         </div>
       </div>
@@ -199,23 +210,22 @@
     </main>
   </div>
 
-  <!-- ══════════════════════════════════════════
-       EDIT LITERS MODAL
-  ══════════════════════════════════════════ -->
-  <div id="editModal" class="hidden fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-50">
-    <div class="bg-gray-900 border border-gray-700 rounded-2xl p-6 w-full max-w-xs fade-in">
+  <!-- Edit Liters Modal -->
+  <div id="editModal" class="hidden fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center p-4 z-50" style="backdrop-filter:blur(4px)">
+    <div class="card p-6 w-full max-w-xs fade-in" style="border-radius:20px">
       <h3 class="text-white font-bold mb-4">עדכון ליטרים</h3>
       <p class="text-gray-400 text-sm mb-3">כרטיס: <span id="editCardNum" class="text-white font-bold"></span></p>
-      <input
-        id="editLitersInput"
-        type="number"
-        min="0"
-        step="0.5"
-        class="w-full bg-gray-800 border border-gray-700 text-white rounded-xl px-4 py-3 text-xl text-center font-bold focus:outline-none focus:border-blue-500 mb-4"
-      />
+      <input id="editLitersInput" type="number" min="0" step="0.5"
+        class="input-field text-xl text-center font-bold mb-4" style="font-size:22px;padding:14px" />
       <div class="flex gap-3">
-        <button onclick="saveEditLiters()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2.5 rounded-xl transition-all">שמור</button>
-        <button onclick="closeEditModal()" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white font-bold py-2.5 rounded-xl transition-all">ביטול</button>
+        <button onclick="saveEditLiters()"
+          style="flex:1;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:700;padding:12px;border-radius:12px;border:none;cursor:pointer;">
+          שמור
+        </button>
+        <button onclick="closeEditModal()"
+          style="flex:1;background:rgba(255,255,255,0.07);color:#fff;font-weight:700;padding:12px;border-radius:12px;border:none;cursor:pointer;">
+          ביטול
+        </button>
       </div>
     </div>
   </div>
@@ -225,7 +235,6 @@
     let TOKEN    = localStorage.getItem('delek_token');
     let editCard = null;
 
-    // ── Init ──
     if (TOKEN) showPanel();
 
     // ── Login ──
@@ -237,10 +246,10 @@
 
       err.classList.add('hidden');
       btn.disabled = true;
-      btn.textContent = '...';
+      btn.innerHTML = '<span class="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full" style="animation:spin 0.8s linear infinite;display:inline-block"></span>';
 
       try {
-        const res  = await api({ action: 'adminLogin', password: pw });
+        const res = await api({ action: 'adminLogin', password: pw });
         if (res.error) { showLoginErr(res.error); return; }
         TOKEN = res.token;
         localStorage.setItem('delek_token', TOKEN);
@@ -286,7 +295,7 @@
         updateStats(res.cards || []);
       } catch {
         document.getElementById('tableLoading').innerHTML =
-          '<p class="text-red-400 py-8">שגיאה בטעינת הנתונים</p>';
+          '<p class="text-red-400 py-8 text-sm">שגיאה בטעינת הנתונים</p>';
       }
     }
 
@@ -306,25 +315,25 @@
 
       tbody.innerHTML = cards.map(c => {
         const badge = c.fuelType === 'בנזין'
-          ? '<span class="badge-benzin text-xs font-bold px-2 py-0.5 rounded-lg">בנזין</span>'
-          : '<span class="badge-soler text-xs font-bold px-2 py-0.5 rounded-lg">סולר</span>';
-        const litersColor = c.liters <= 50 ? 'text-red-400 font-bold' : c.liters <= 150 ? 'text-amber-400 font-bold' : 'text-white';
+          ? '<span class="badge badge-benzin">בנזין</span>'
+          : '<span class="badge badge-soler">סולר</span>';
+        const litColor = c.liters <= 50 ? 'color:#f87171;font-weight:700' : c.liters <= 150 ? 'color:#fbbf24;font-weight:700' : 'color:#fff';
         return `
-          <tr class="border-t border-gray-800/60 hover:bg-gray-800/30 transition-colors">
-            <td class="px-4 py-3 text-white font-bold">${c.cardNumber}</td>
+          <tr class="border-t border-white/5 hover:bg-white/3 transition-colors" style="transition:background 0.15s">
+            <td class="px-4 py-3 text-white font-bold text-sm">${c.cardNumber}</td>
             <td class="px-4 py-3">${badge}</td>
-            <td class="px-4 py-3 ${litersColor}">${c.liters.toLocaleString('he-IL')} ל׳
-              <button onclick="openEditModal('${c.cardNumber}',${c.liters})" class="mr-2 text-gray-500 hover:text-blue-400 text-xs transition-colors">✏️</button>
+            <td class="px-4 py-3 text-sm" style="${litColor}">${c.liters.toLocaleString('he-IL')} ל׳
+              <button onclick="openEditModal('${c.cardNumber}',${c.liters})"
+                class="mr-2 text-gray-600 hover:text-blue-400 transition-colors text-xs">✏️</button>
             </td>
-            <td class="px-4 py-3 text-gray-400 text-xs">${c.notes || '—'}</td>
+            <td class="px-4 py-3 text-gray-500 text-xs">${c.notes || '—'}</td>
             <td class="px-4 py-3">
               <button onclick="deleteCard('${c.cardNumber}')"
                 class="text-red-500 hover:text-red-300 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10">
                 מחק
               </button>
             </td>
-          </tr>
-        `;
+          </tr>`;
       }).join('');
     }
 
@@ -356,41 +365,39 @@
       try {
         const res = await api(payload);
         if (res.error) {
-          showAddMsg(res.error, 'text-red-400');
+          showAddMsg(res.error, '#f87171');
         } else {
           document.getElementById('addForm').reset();
-          showAddMsg('✅ הכרטיס נוסף בהצלחה', 'text-green-400');
+          showAddMsg('✅ הכרטיס נוסף בהצלחה', '#4ade80');
           loadCards();
         }
       } catch {
-        showAddMsg('שגיאת תקשורת', 'text-red-400');
+        showAddMsg('שגיאת תקשורת', '#f87171');
       } finally {
         btn.disabled = false;
         btn.textContent = 'הוסף כרטיס';
       }
     }
 
-    function showAddMsg(text, cls) {
+    function showAddMsg(text, color) {
       const el = document.getElementById('addMsg');
-      el.className = 'text-sm font-bold ' + cls;
+      el.style.color = color;
       el.textContent = text;
       el.classList.remove('hidden');
       setTimeout(() => el.classList.add('hidden'), 3500);
     }
 
-    // ── Delete Card ──
+    // ── Delete ──
     async function deleteCard(cn) {
       if (!confirm('למחוק את כרטיס ' + cn + '?')) return;
       try {
         const res = await api({ action: 'deleteCard', token: TOKEN, cardNumber: cn });
         if (res.error) { alert(res.error); return; }
         loadCards();
-      } catch {
-        alert('שגיאת תקשורת');
-      }
+      } catch { alert('שגיאת תקשורת'); }
     }
 
-    // ── Edit Liters Modal ──
+    // ── Edit Modal ──
     function openEditModal(cn, liters) {
       editCard = cn;
       document.getElementById('editCardNum').textContent   = cn;
@@ -411,12 +418,10 @@
         if (res.error) { alert(res.error); return; }
         closeEditModal();
         loadCards();
-      } catch {
-        alert('שגיאת תקשורת');
-      }
+      } catch { alert('שגיאת תקשורת'); }
     }
 
-    // ── API Helper ──
+    // ── API ──
     async function api(body) {
       const res = await fetch(API_URL, {
         method:  'POST',
