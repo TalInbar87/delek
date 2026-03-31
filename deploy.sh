@@ -109,11 +109,20 @@ bash build.sh
 # ────────────────────────────────────────────────
 cd "$REPO_DIR"
 
-if git diff --quiet && git diff --cached --quiet; then
+# Stage כל הקבצים הרלוונטיים (ללא gitignored: .env, config.js, Config.js)
+git add index.html admin.html config.example.js build.sh deploy.sh .env.example .gitignore
+git add vercel.json 2>/dev/null || true
+git add appScripts/unified/Auth.js \
+        appScripts/unified/FuelCards.js \
+        appScripts/unified/Main.js \
+        appScripts/unified/appsscript.json \
+        appScripts/unified/.clasp.json
+
+# בדוק אם יש שינויים staged אחרי ה-add
+if git diff --cached --quiet; then
   echo "✅ Nothing to commit"
 else
   echo "📝 Committing..."
-  git add index.html admin.html config.js config.example.js
   git commit -m "deploy: update $(date '+%Y-%m-%d %H:%M')"
   git push origin main
   echo "✅ Pushed to main"
