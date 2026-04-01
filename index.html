@@ -231,7 +231,7 @@
       }
     }
 
-    // ── בדיקת יתרה ──
+    // ── בדיקת יתרה (מגודי ישירות) ──
     async function checkBalance() {
       const card   = document.getElementById('balanceCard').value.trim();
       const btn    = document.getElementById('balanceBtn');
@@ -243,21 +243,27 @@
       result.classList.add('hidden');
 
       try {
-        const res = await api({ action: 'lookupCard', cardNumber: card });
+        const res = await api({ action: 'lookupGoodi', cardNumber: card });
         if (!res.found) {
-          showResult(result, 'error', 'כרטיס ' + card + ' לא נמצא במערכת');
+          showResult(result, 'error', 'כרטיס ' + card + ' לא נמצא בגודי');
         } else {
           const c     = res.card;
           const badge = fuelBadge(c.fuelType);
-          const color = c.liters <= 50 ? '#f87171' : c.liters <= 150 ? '#fbbf24' : '#ffffff';
-          const warn  = c.liters <= 50 ? '<p class="text-red-400 text-xs font-bold mt-2">⚠️ יתרה נמוכה!</p>' : '';
+          const left  = c.litersLeft;
+          const color = left <= 5 ? '#f87171' : left <= 15 ? '#fbbf24' : '#ffffff';
+          const warn  = left <= 5 ? '<p class="text-red-400 text-xs font-bold mt-1">⚠️ כמעט ריק!</p>' : '';
           result.innerHTML = `
-            <div class="card text-center fade-in">
-              <p class="text-gray-500 text-sm mb-1">כרטיס <span class="text-gray-200 font-bold">${c.cardNumber}</span> &nbsp;${badge}</p>
-              <p style="color:${color}" class="text-6xl font-black my-3">${c.liters.toLocaleString('he-IL')}</p>
-              <p class="text-gray-500 text-sm">ליטרים שנותרו</p>
+            <div class="card text-center fade-in" style="space-y:8px">
+              <p class="text-gray-500 text-sm">${c.cardName || 'כרטיס'} &nbsp;${badge}</p>
+              <p class="text-gray-600 text-xs mb-2">מס׳ ${c.cardNumber}</p>
+              <p style="color:${color};font-size:3.5rem;font-weight:900;line-height:1;margin:12px 0">${left.toLocaleString('he-IL', {minimumFractionDigits:2, maximumFractionDigits:2})}</p>
+              <p class="text-gray-500 text-sm mb-2">ליטרים שנותרו</p>
               ${warn}
-              ${c.notes ? `<p class="text-gray-600 text-xs mt-3 bg-white/5 rounded-xl px-3 py-2">${c.notes}</p>` : ''}
+              <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:10px;margin-top:12px;font-size:12px;color:#6b7280;display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:right">
+                <span>שומשו: <b style="color:#e5e7eb">${c.litersUsed.toFixed(2)} ל׳</b></span>
+                <span>עלות: <b style="color:#e5e7eb">₪${c.amountUsed.toFixed(2)}</b></span>
+                ${c.lastUsage ? `<span style="grid-column:1/-1">שימוש אחרון: <b style="color:#e5e7eb">${c.lastUsage}</b></span>` : ''}
+              </div>
             </div>`;
           result.classList.remove('hidden');
         }

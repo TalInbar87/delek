@@ -106,6 +106,13 @@ function doPost(e) {
         return _json({ success: true });
       }
 
+      case 'lookupGoodi': {
+        if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
+        const card = FuelGoodi.lookup(data.cardNumber);
+        if (!card) return _json({ found: false });
+        return _json({ found: true, card });
+      }
+
       case 'logFueling': {
         if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
         if (!data.driverName) return _json({ error: 'חסר שם מתדלק' });
