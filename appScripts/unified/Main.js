@@ -122,24 +122,17 @@ function doPost(e) {
       }
 
       case 'logFueling': {
-        if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
-        if (!data.driverName) return _json({ error: 'חסר שם מתדלק' });
-        if (!data.liters)     return _json({ error: 'חסר כמות ליטרים' });
+        if (!data.cardNumber)    return _json({ error: 'חסר מספר כרטיס' });
+        if (!data.driverName)    return _json({ error: 'חסר שם מתדלק' });
+        if (!data.receiptBase64) return _json({ error: 'חסרה תמונת קבלה' });
 
-        // העלאת קבלה ל-Drive אם סופקה תמונה
-        let receiptUrl = '';
-        if (data.receiptBase64 && data.receiptMimeType) {
-          receiptUrl = DriveUpload.uploadReceipt(
-            data.receiptBase64,
-            data.receiptMimeType,
-            data.driverName
-          );
-        }
-
-        const result = FuelCardsManager.logFueling(
-          data.cardNumber, data.driverName, data.liters, receiptUrl
+        const receiptUrl = DriveUpload.uploadReceipt(
+          data.receiptBase64,
+          data.receiptMimeType || 'image/jpeg',
+          data.driverName,
+          data.cardNumber
         );
-        return _json({ success: true, remaining: result.remaining, fuelType: result.fuelType, receiptUrl });
+        return _json({ success: true, receiptUrl });
       }
 
       default:

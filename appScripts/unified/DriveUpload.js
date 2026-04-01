@@ -15,8 +15,17 @@ class DriveUpload {
    * @param {string} driverName  - שם המתדלק (לשם הקובץ)
    * @returns {string} URL של הקובץ ב-Drive
    */
-  static uploadReceipt(base64Data, mimeType, driverName) {
-    const folder = DriveApp.getFolderById(RECEIPTS_FOLDER_ID);
+  /**
+   * מעלה קבלה לתקיית כרטיס ב-Drive
+   * מבנה: RECEIPTS_FOLDER / {cardNumber} / {driverName dd-MM-yyyy}.jpg
+   */
+  static uploadReceipt(base64Data, mimeType, driverName, cardNumber) {
+    const mainFolder   = DriveApp.getFolderById(RECEIPTS_FOLDER_ID);
+    const subFolderName = (cardNumber || 'general').toString().trim();
+
+    // מצא תקיית כרטיס — או צור אם לא קיימת
+    const iter      = mainFolder.getFoldersByName(subFolderName);
+    const subFolder = iter.hasNext() ? iter.next() : mainFolder.createFolder(subFolderName);
 
     const ext      = DriveUpload._ext(mimeType);
     const dateStr  = Utilities.formatDate(new Date(), 'Asia/Jerusalem', 'dd-MM-yyyy');
@@ -24,11 +33,9 @@ class DriveUpload {
 
     const bytes = Utilities.base64Decode(base64Data);
     const blob  = Utilities.newBlob(bytes, mimeType || 'image/jpeg', fileName);
-    const file  = folder.createFile(blob);
+    const file  = subFolder.createFile(blob);
 
-    // הפוך לקריא לכל בעל קישור
     file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-
     return file.getUrl();
   }
 

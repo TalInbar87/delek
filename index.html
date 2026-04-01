@@ -103,24 +103,16 @@
               class="input-field" autocomplete="off" />
           </div>
 
+          <!-- Receipt photo (required) -->
           <div class="space-y-1.5">
-            <label class="text-gray-400 text-xs font-semibold block">כמות ליטרים שתודלקה</label>
-            <input id="fuelLiters" type="number" inputmode="decimal" min="0.5" step="0.5" placeholder="50"
-              class="input-field" />
-          </div>
-
-          <!-- Receipt photo -->
-          <div class="space-y-1.5">
-            <label class="text-gray-400 text-xs font-semibold block">
-              קבלת תדלוק <span class="text-gray-600 font-normal">(אופציונלי)</span>
-            </label>
+            <label class="text-gray-400 text-xs font-semibold block">קבלת תדלוק</label>
             <input id="receiptFile" type="file" accept="image/*" capture="environment"
               class="hidden" onchange="onReceiptPicked()" />
             <div class="upload-zone" id="uploadZone" onclick="document.getElementById('receiptFile').click()">
               <p class="text-gray-500 text-sm" id="uploadLabel">📷 צלם קבלה / בחר תמונה</p>
             </div>
             <img id="receiptPreview" class="hidden w-full rounded-xl mt-1"
-              style="max-height:180px;object-fit:cover" />
+              style="max-height:200px;object-fit:cover" />
           </div>
 
           <button id="fuelBtn" onclick="submitFueling()" class="btn-primary" style="margin-top:4px">
@@ -212,65 +204,48 @@
     async function submitFueling() {
       const card   = document.getElementById('fuelCard').value.trim();
       const driver = document.getElementById('fuelDriver').value.trim();
-      const liters = parseFloat(document.getElementById('fuelLiters').value);
+      const file   = document.getElementById('receiptFile').files[0] || null;
       const btn    = document.getElementById('fuelBtn');
       const result = document.getElementById('fuelResult');
 
-      if (!card)                               return showResult(result, 'error', 'נא להזין מספר כרטיס');
-      if (!driver)                             return showResult(result, 'error', 'נא להזין שם מתדלק');
-      if (!liters || isNaN(liters) || liters <= 0) return showResult(result, 'error', 'נא להזין כמות ליטרים תקינה');
+      if (!card)   return showResult(result, 'error', 'נא להזין מספר כרטיס');
+      if (!driver) return showResult(result, 'error', 'נא להזין שם מתדלק');
+      if (!file)   return showResult(result, 'error', 'נא לצלם או להעלות תמונת קבלה');
 
       result.classList.add('hidden');
 
-      // הכן קבלה אם נבחרה
-      const receiptFileEl = document.getElementById('receiptFile');
-      const receiptFile   = receiptFileEl.files[0] || null;
-      let receiptBase64   = null;
-      let receiptMimeType = null;
+      setLoading(btn, true, 'מדחס תמונה...');
+      const receiptBase64 = await compressImage(file);
 
-      if (receiptFile) {
-        setLoading(btn, true, 'מדחס תמונה...');
-        receiptBase64   = await compressImage(receiptFile);
-        receiptMimeType = 'image/jpeg';
-        setLoading(btn, true, 'מעלה קבלה...');
-      } else {
-        setLoading(btn, true, 'מבצע...');
-      }
-
+      setLoading(btn, true, 'מעלה קבלה...');
       try {
-        const payload = { action: 'logFueling', cardNumber: card, driverName: driver, liters };
-        if (receiptBase64) { payload.receiptBase64 = receiptBase64; payload.receiptMimeType = receiptMimeType; }
-
-        const res = await api(payload);
+        const res = await api({
+          action:         'logFueling',
+          cardNumber:     card,
+          driverName:     driver,
+          receiptBase64,
+          receiptMimeType: 'image/jpeg'
+        });
 
         if (res.error) {
           showResult(result, 'error', res.error);
         } else {
-          const badge       = fuelBadge(res.fuelType);
-          const receiptLink = res.receiptUrl
-            ? `<a href="${res.receiptUrl}" target="_blank"
-                 style="display:inline-block;margin-top:10px;font-size:12px;color:#60a5fa;text-decoration:underline">
-                 📎 צפה בקבלה
-               </a>`
-            : '';
           result.innerHTML = `
             <div class="result-success fade-in">
               <div class="text-3xl mb-2">✅</div>
-              <p class="text-green-300 font-black text-lg mb-1">תדלוק בוצע בהצלחה</p>
+              <p class="text-green-300 font-black text-lg mb-1">התדלוק נרשם בהצלחה</p>
               <p class="text-gray-400 text-sm mb-3">
-                כרטיס <span class="text-white font-bold">${card}</span> &nbsp;${badge}
+                כרטיס <span class="text-white font-bold">${card}</span> · ${driver}
               </p>
-              <div class="bg-black/30 rounded-2xl py-3 px-4 inline-block">
-                <span class="text-white text-3xl font-black">${res.remaining.toLocaleString('he-IL')}</span>
-                <span class="text-gray-400 text-sm mr-1">ל׳ נותרו (מקומי)</span>
-              </div>
-              ${receiptLink}
+              <a href="${res.receiptUrl}" target="_blank"
+                style="display:inline-block;margin-top:4px;font-size:13px;color:#60a5fa;text-decoration:underline">
+                📎 צפה בקבלה ב-Drive
+              </a>
             </div>`;
           result.classList.remove('hidden');
           // נקה טופס
-          document.getElementById('fuelCard').value   = '';
+          document.getElementById('fuelCard').value    = '';
           document.getElementById('fuelDriver').value  = '';
-          document.getElementById('fuelLiters').value  = '';
           document.getElementById('receiptFile').value = '';
           document.getElementById('uploadZone').classList.remove('has-file');
           document.getElementById('uploadLabel').textContent = '📷 צלם קבלה / בחר תמונה';
