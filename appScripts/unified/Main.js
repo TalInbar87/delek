@@ -113,6 +113,12 @@ function doPost(e) {
         return _json({ found: true, card });
       }
 
+      case 'debugGoodi': {
+        if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
+        const dbg = FuelGoodi.debug(data.cardNumber);
+        return _json(dbg);
+      }
+
       case 'logFueling': {
         if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
         if (!data.driverName) return _json({ error: 'חסר שם מתדלק' });
