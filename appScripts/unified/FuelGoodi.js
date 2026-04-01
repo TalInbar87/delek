@@ -4,11 +4,17 @@
  * ================================================================
  */
 
-/** הרץ פונקציה זו מה-editor כדי לאשר הרשאות UrlFetchApp + Drive */
+/** הרץ פונקציה זו מה-editor כדי לאשר הרשאות UrlFetchApp + Drive (כולל createFolder) */
 function authorizeUrlFetch() {
+  // 1. UrlFetch
   UrlFetchApp.fetch('https://www.google.com', { muteHttpExceptions: true });
-  DriveApp.getFolderById('1OjgLBZUvZcVyQHjqZYrWzy7gAEwVymY6');
-  Logger.log('Authorization OK: UrlFetch + Drive');
+
+  // 2. Drive — בדוק גם קריאה וגם כתיבה (createFolder)
+  const parent     = DriveApp.getFolderById('1OjgLBZUvZcVyQHjqZYrWzy7gAEwVymY6');
+  const testFolder = parent.createFolder('__auth_test__');
+  testFolder.setTrashed(true);   // מחק מיד אחרי האישור
+
+  Logger.log('Authorization OK: UrlFetch + Drive createFolder');
 }
 
 const GOODI_URL = 'https://fueladmin.goodi.co.il/_fuel/';
