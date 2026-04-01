@@ -57,27 +57,21 @@ class FuelGoodi {
 
   // ── parse HTML תגובה ──
   static _parse(cardNumber, html) {
-    const cardInfo = html.match(/<div id="CardInfo"[^>]*>([\s\S]*?)<\/div>\s*<div id="CurrentReport"/);
-    if (!cardInfo || !cardInfo[1].includes('ליטרים שנותרו')) return null;
+    if (!html.includes('ליטרים שנותרו')) return null;
 
-    const block = cardInfo[1];
-
-    const cardName   = this._match(block, /title="שם כרטיס ?">([^<]+)/);
-    const status     = this._match(block, /title="שם כרטיס ?">[^<]+<\/td>\s*<td>([^<]+)<\/td>/);
-    const litersUsed = parseFloat(this._match(block, /ליטרים שהשתמשו:<\/td>\s*<td>([\d.]+)/) || '0');
-    const litersLeft = parseFloat(this._match(block, /ליטרים שנותרו:<\/td>\s*<td>([\d.]+)/) || '0');
-    const amountUsed = parseFloat(this._match(block, /סכום שהשתמשו:<\/td>\s*<td>([\d.]+)/) || '0');
+    const cardName   = this._match(html, /title="שם כרטיס ?">\s*([^<]+)/);
+    const litersUsed = parseFloat(this._match(html, /ליטרים שהשתמשו:<\/td>\s*<td>([\d.]+)/) || '0');
+    const litersLeft = parseFloat(this._match(html, /ליטרים שנותרו:<\/td>\s*<td>([\d.]+)/) || '0');
+    const amountUsed = parseFloat(this._match(html, /סכום שהשתמשו:<\/td>\s*<td>([\d.]+)/) || '0');
     const lastUsage  = this._match(html, /תאריך שימוש אחרון:\s*([^<]+)/);
 
-    // זהה סוג דלק מהשם
-    const name = cardName || '';
+    const name     = (cardName || '').trim();
     const fuelType = name.includes('סולר') ? 'סולר' : 'בנזין';
 
     return {
       cardNumber: cardNumber.toString().trim(),
-      cardName:   name.trim(),
+      cardName:   name,
       fuelType,
-      status:     (status || '').trim(),
       litersUsed,
       litersLeft,
       amountUsed,
