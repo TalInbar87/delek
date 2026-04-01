@@ -2,16 +2,13 @@
  * ================================================================
  * FuelGoodi - שאילתה ישירה לאתר גודי
  * ================================================================
- * מבצע GET+POST לאתר fueladmin.goodi.co.il
- * ומחזיר פרטי כרטיס עדכניים (ליטרים שנותרו, שם כרטיס, וכו׳)
- * ================================================================
  */
 
 const GOODI_URL = 'https://fueladmin.goodi.co.il/_fuel/';
 
 class FuelGoodi {
 
-  // ── שאילתה לפי מספר כרטיס ──
+  // ── שאילתה לפי מספר כרטיס — מחזיר { card } או null ──
   static lookup(cardNumber) {
     // שלב 1: GET — קבל ViewState טרי
     const getResp = UrlFetchApp.fetch(GOODI_URL, {
@@ -20,13 +17,13 @@ class FuelGoodi {
       headers: { 'User-Agent': 'Mozilla/5.0' }
     });
 
-    const html = getResp.getContentText();
+    const html = getResp.getContentText('UTF-8');
 
     const vs  = this._extractInput('__VIEWSTATE', html);
     const ev  = this._extractInput('__EVENTVALIDATION', html);
     const vsg = this._extractInput('__VIEWSTATEGENERATOR', html);
 
-    if (!vs) throw new Error('לא ניתן לטעון את דף גודי');
+    if (!vs) throw new Error('לא ניתן לטעון את דף גודי (ViewState ריק)');
 
     // שלב 2: POST עם מספר הכרטיס
     const postResp = UrlFetchApp.fetch(GOODI_URL, {
@@ -35,7 +32,7 @@ class FuelGoodi {
       followRedirects: true,
       headers: {
         'User-Agent': 'Mozilla/5.0',
-        'Referer': this.BASE_URL
+        'Referer': GOODI_URL
       },
       payload: {
         'RadStyleSheetManager1_TSSM': '',
@@ -47,26 +44,62 @@ class FuelGoodi {
         '__EVENTVALIDATION': ev,
         'ddSearchSelect': '3',
         'tbSearch': cardNumber.toString().trim(),
-        'btnSearch': 'חפש'
+        'btnSearch': '\u05D7\u05E4\u05E9'   // חפש — encoded to avoid charset issues
       }
     });
 
-    const result = postResp.getContentText();
+    const result = postResp.getContentText('UTF-8');
     return this._parse(cardNumber, result);
   }
 
-  // ── parse HTML תגובה ──
-  static _parse(cardNumber, html) {
-    if (!html.includes('ליטרים שנותרו')) return null;
+  // ── debug: מחזיר raw snippet מה-response ──
+  static debug(cardNumber) {
+    const getResp = UrlFetchApp.fetch(GOODI_URL, {
+      muteHttpExceptions: true,
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    });
+    const html = getResp.getContentText('UTF-8');
+    const vs  = this._extractInput('__VIEWSTATE', html);
+    const ev  = this._extractInput('__EVENTVALIDATION', html);
+    const vsg = this._extractInput('__VIEWSTATEGENERATOR', html);
 
-    const cardName   = this._match(html, /title="שם כרטיס ?">\s*([^<]+)/);
-    const litersUsed = parseFloat(this._match(html, /ליטרים שהשתמשו:<\/td>\s*<td>([\d.]+)/) || '0');
-    const litersLeft = parseFloat(this._match(html, /ליטרים שנותרו:<\/td>\s*<td>([\d.]+)/) || '0');
-    const amountUsed = parseFloat(this._match(html, /סכום שהשתמשו:<\/td>\s*<td>([\d.]+)/) || '0');
-    const lastUsage  = this._match(html, /תאריך שימוש אחרון:\s*([^<]+)/);
+    const postResp = UrlFetchApp.fetch(GOODI_URL, {
+      method: 'post',
+      muteHttpExceptions: true,
+      headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': GOODI_URL },
+      payload: {
+        'RadStyleSheetManager1_TSSM': '', 'RadScriptManager1_TSM': '',
+        '__EVENTTARGET': '', '__EVENTARGUMENT': '',
+        '__VIEWSTATE': vs, '__VIEWSTATEGENERATOR': vsg, '__EVENTVALIDATION': ev,
+        'ddSearchSelect': '3',
+        'tbSearch': cardNumber.toString().trim(),
+        'btnSearch': '\u05D7\u05E4\u05E9'
+      }
+    });
+
+    const result = postResp.getContentText('UTF-8');
+    const idx    = result.indexOf('CardInfo');
+    return {
+      vsLen:      vs.length,
+      postStatus: postResp.getResponseCode(),
+      resultLen:  result.length,
+      hasLiters:  result.includes('\u05DC\u05D9\u05D8\u05E8\u05D9\u05DD \u05E9\u05E0\u05D5\u05EA\u05E8\u05D5'), // ליטרים שנותרו
+      snippet:    idx >= 0 ? result.substring(idx, idx + 600) : result.substring(0, 400)
+    };
+  }
+
+  // ── parse ──
+  static _parse(cardNumber, html) {
+    if (!html.includes('\u05DC\u05D9\u05D8\u05E8\u05D9\u05DD \u05E9\u05E0\u05D5\u05EA\u05E8\u05D5')) return null;  // ליטרים שנותרו
+
+    const cardName   = this._match(html, /title="[^"]*\u05E9\u05DD \u05DB\u05E8\u05D8\u05D9\u05E1[^"]*">\s*([^<]+)/);
+    const litersUsed = parseFloat(this._match(html, /\u05DC\u05D9\u05D8\u05E8\u05D9\u05DD \u05E9\u05D4\u05E9\u05EA\u05DE\u05E9\u05D5:<\/td>\s*<td>([\d.]+)/) || '0');
+    const litersLeft = parseFloat(this._match(html, /\u05DC\u05D9\u05D8\u05E8\u05D9\u05DD \u05E9\u05E0\u05D5\u05EA\u05E8\u05D5:<\/td>\s*<td>([\d.]+)/) || '0');
+    const amountUsed = parseFloat(this._match(html, /\u05E1\u05DB\u05D5\u05DD \u05E9\u05D4\u05E9\u05EA\u05DE\u05E9\u05D5:<\/td>\s*<td>([\d.]+)/) || '0');
+    const lastUsage  = this._match(html, /\u05EA\u05D0\u05E8\u05D9\u05DA \u05E9\u05D9\u05DE\u05D5\u05E9 \u05D0\u05D7\u05E8\u05D5\u05DF:\s*([^<]+)/);
 
     const name     = (cardName || '').trim();
-    const fuelType = name.includes('סולר') ? 'סולר' : 'בנזין';
+    const fuelType = name.includes('\u05E1\u05D5\u05DC\u05E8') ? '\u05E1\u05D5\u05DC\u05E8' : '\u05D1\u05E0\u05D6\u05D9\u05DF'; // סולר / בנזין
 
     return {
       cardNumber: cardNumber.toString().trim(),
