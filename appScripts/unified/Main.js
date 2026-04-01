@@ -126,6 +126,9 @@ function doPost(e) {
         if (!data.driverName)    return _json({ error: 'חסר שם מתדלק' });
         if (!data.receiptBase64) return _json({ error: 'חסרה תמונת קבלה' });
 
+        const cardExists = FuelCardsManager.lookupCard(data.cardNumber);
+        if (!cardExists) return _json({ error: 'כרטיס ' + data.cardNumber + ' לא קיים במערכת' });
+
         const receiptUrl = DriveUpload.uploadReceipt(
           data.receiptBase64,
           data.receiptMimeType || 'image/jpeg',
