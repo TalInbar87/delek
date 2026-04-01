@@ -4,6 +4,12 @@
  * ================================================================
  */
 
+/** הרץ פונקציה זו פעם אחת מה-editor כדי לאשר הרשאות UrlFetchApp */
+function authorizeUrlFetch() {
+  const resp = UrlFetchApp.fetch('https://www.google.com', { muteHttpExceptions: true });
+  Logger.log('Authorization OK: ' + resp.getResponseCode());
+}
+
 const GOODI_URL = 'https://fueladmin.goodi.co.il/_fuel/';
 
 class FuelGoodi {
