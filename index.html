@@ -8,94 +8,61 @@
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <style>
     * { font-family: 'Heebo', sans-serif; }
-
-    body {
-      background: radial-gradient(ellipse at top, #0f2444 0%, #030712 65%);
-      min-height: 100vh;
-    }
+    body { background: radial-gradient(ellipse at top, #0f2444 0%, #030712 65%); min-height: 100vh; }
 
     .fade-in { animation: fadeIn 0.3s ease-out; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(12px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
-
+    @keyframes fadeIn { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
     .spin { animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .tab-btn {
-      flex: 1;
-      padding: 14px 0;
-      font-size: 14px;
-      font-weight: 700;
-      transition: all 0.2s;
-      border-bottom: 2px solid transparent;
-      color: #6b7280;
+      flex: 1; padding: 14px 0; font-size: 14px; font-weight: 700;
+      transition: all 0.2s; border-bottom: 2px solid transparent; color: #6b7280;
     }
-    .tab-btn.active {
-      color: #60a5fa;
-      border-bottom-color: #3b82f6;
-    }
+    .tab-btn.active { color: #60a5fa; border-bottom-color: #3b82f6; }
 
     .input-field {
-      width: 100%;
-      background: rgba(255,255,255,0.05);
-      border: 1.5px solid rgba(255,255,255,0.1);
-      color: #fff;
-      border-radius: 14px;
-      padding: 14px 16px;
-      font-size: 16px;
-      transition: all 0.2s;
-      outline: none;
-      -webkit-appearance: none;
+      width: 100%; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1);
+      color: #fff; border-radius: 14px; padding: 14px 16px; font-size: 16px;
+      transition: all 0.2s; outline: none; -webkit-appearance: none;
     }
     .input-field::placeholder { color: #4b5563; }
-    .input-field:focus {
-      border-color: #3b82f6;
-      background: rgba(59,130,246,0.08);
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
-    }
+    .input-field:focus { border-color: #3b82f6; background: rgba(59,130,246,0.08); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
 
     .btn-primary {
-      width: 100%;
-      background: linear-gradient(135deg, #2563eb, #1d4ed8);
-      color: white;
-      font-weight: 800;
-      font-size: 16px;
-      padding: 15px;
-      border-radius: 14px;
-      border: none;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 4px 20px rgba(37,99,235,0.35);
-      letter-spacing: 0.3px;
+      width: 100%; background: linear-gradient(135deg, #2563eb, #1d4ed8);
+      color: white; font-weight: 800; font-size: 16px; padding: 15px;
+      border-radius: 14px; border: none; cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 4px 20px rgba(37,99,235,0.35); letter-spacing: 0.3px;
     }
-    .btn-primary:hover   { background: linear-gradient(135deg, #3b82f6, #2563eb); transform: translateY(-1px); box-shadow: 0 6px 24px rgba(37,99,235,0.45); }
-    .btn-primary:active  { transform: translateY(0); box-shadow: 0 2px 12px rgba(37,99,235,0.3); }
+    .btn-primary:hover   { background: linear-gradient(135deg, #3b82f6, #2563eb); transform: translateY(-1px); }
+    .btn-primary:active  { transform: translateY(0); }
     .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
 
     .card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 20px;
-      padding: 24px;
-      backdrop-filter: blur(10px);
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px; padding: 24px; backdrop-filter: blur(10px);
     }
 
     .result-success {
       background: linear-gradient(135deg, rgba(5,46,22,0.8), rgba(5,46,22,0.5));
-      border: 1px solid rgba(34,197,94,0.3);
-      border-radius: 18px;
-      padding: 20px;
-      text-align: center;
+      border: 1px solid rgba(34,197,94,0.3); border-radius: 18px; padding: 20px; text-align: center;
     }
     .result-error {
-      background: rgba(69,10,10,0.7);
-      border: 1px solid rgba(239,68,68,0.3);
-      border-radius: 18px;
-      padding: 16px;
-      text-align: center;
+      background: rgba(69,10,10,0.7); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 18px; padding: 16px; text-align: center;
     }
+
+    /* Receipt upload zone */
+    .upload-zone {
+      border: 2px dashed rgba(255,255,255,0.12); border-radius: 14px;
+      padding: 18px 16px; text-align: center; cursor: pointer;
+      transition: all 0.2s; background: rgba(255,255,255,0.02);
+    }
+    .upload-zone:hover, .upload-zone.has-file {
+      border-color: rgba(59,130,246,0.5); background: rgba(59,130,246,0.05);
+    }
+    .upload-zone.has-file { border-style: solid; }
   </style>
 </head>
 <body class="flex flex-col min-h-screen">
@@ -120,7 +87,6 @@
 
       <!-- ══ TAB: תדלוק ══ -->
       <div id="panelFuel" class="fade-in space-y-3">
-
         <p class="text-gray-500 text-sm text-center py-1">מלא את הפרטים לאחר תדלוק</p>
 
         <div class="card space-y-4">
@@ -143,10 +109,23 @@
               class="input-field" />
           </div>
 
+          <!-- Receipt photo -->
+          <div class="space-y-1.5">
+            <label class="text-gray-400 text-xs font-semibold block">
+              קבלת תדלוק <span class="text-gray-600 font-normal">(אופציונלי)</span>
+            </label>
+            <input id="receiptFile" type="file" accept="image/*" capture="environment"
+              class="hidden" onchange="onReceiptPicked()" />
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('receiptFile').click()">
+              <p class="text-gray-500 text-sm" id="uploadLabel">📷 צלם קבלה / בחר תמונה</p>
+            </div>
+            <img id="receiptPreview" class="hidden w-full rounded-xl mt-1"
+              style="max-height:180px;object-fit:cover" />
+          </div>
+
           <button id="fuelBtn" onclick="submitFueling()" class="btn-primary" style="margin-top:4px">
             אשר תדלוק
           </button>
-
         </div>
 
         <div id="fuelResult" class="hidden fade-in"></div>
@@ -154,7 +133,6 @@
 
       <!-- ══ TAB: בדיקת יתרה ══ -->
       <div id="panelBalance" class="hidden fade-in space-y-3">
-
         <p class="text-gray-500 text-sm text-center py-1">הזן מספר כרטיס לבדיקת יתרת ליטרים</p>
 
         <div class="card space-y-4">
@@ -182,10 +160,52 @@
       const isFuel = tab === 'fuel';
       document.getElementById('tabFuel').className    = 'tab-btn ' + (isFuel  ? 'active' : '');
       document.getElementById('tabBalance').className = 'tab-btn ' + (!isFuel ? 'active' : '');
-      document.getElementById('panelFuel').classList.toggle('hidden',   !isFuel);
+      document.getElementById('panelFuel').classList.toggle('hidden', !isFuel);
       document.getElementById('panelBalance').classList.toggle('hidden', isFuel);
       document.getElementById('fuelResult').classList.add('hidden');
       document.getElementById('balanceResult').classList.add('hidden');
+    }
+
+    // ── Receipt picker ──
+    function onReceiptPicked() {
+      const file = document.getElementById('receiptFile').files[0];
+      if (!file) return;
+      const zone  = document.getElementById('uploadZone');
+      const label = document.getElementById('uploadLabel');
+      const prev  = document.getElementById('receiptPreview');
+      zone.classList.add('has-file');
+      label.textContent = '✅ ' + file.name;
+      const reader = new FileReader();
+      reader.onload = e => { prev.src = e.target.result; prev.classList.remove('hidden'); };
+      reader.readAsDataURL(file);
+    }
+
+    // ── Compress image via canvas (max 1200px, quality 0.75) ──
+    function compressImage(file) {
+      return new Promise(resolve => {
+        const reader = new FileReader();
+        reader.onload = e => {
+          const img = new Image();
+          img.onload = () => {
+            const MAX = 1200;
+            let w = img.width, h = img.height;
+            if (w > MAX || h > MAX) {
+              if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+              else       { w = Math.round(w * MAX / h); h = MAX; }
+            }
+            const canvas = document.createElement('canvas');
+            canvas.width = w; canvas.height = h;
+            canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+            canvas.toBlob(blob => {
+              const r = new FileReader();
+              r.onload = e2 => resolve(e2.target.result.split(',')[1]);
+              r.readAsDataURL(blob);
+            }, 'image/jpeg', 0.75);
+          };
+          img.src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+      });
     }
 
     // ── תדלוק ──
@@ -196,33 +216,65 @@
       const btn    = document.getElementById('fuelBtn');
       const result = document.getElementById('fuelResult');
 
-      if (!card)                              return showResult(result, 'error', 'נא להזין מספר כרטיס');
-      if (!driver)                            return showResult(result, 'error', 'נא להזין שם מתדלק');
+      if (!card)                               return showResult(result, 'error', 'נא להזין מספר כרטיס');
+      if (!driver)                             return showResult(result, 'error', 'נא להזין שם מתדלק');
       if (!liters || isNaN(liters) || liters <= 0) return showResult(result, 'error', 'נא להזין כמות ליטרים תקינה');
 
-      setLoading(btn, true, 'מבצע...');
       result.classList.add('hidden');
 
+      // הכן קבלה אם נבחרה
+      const receiptFileEl = document.getElementById('receiptFile');
+      const receiptFile   = receiptFileEl.files[0] || null;
+      let receiptBase64   = null;
+      let receiptMimeType = null;
+
+      if (receiptFile) {
+        setLoading(btn, true, 'מדחס תמונה...');
+        receiptBase64   = await compressImage(receiptFile);
+        receiptMimeType = 'image/jpeg';
+        setLoading(btn, true, 'מעלה קבלה...');
+      } else {
+        setLoading(btn, true, 'מבצע...');
+      }
+
       try {
-        const res = await api({ action: 'logFueling', cardNumber: card, driverName: driver, liters });
+        const payload = { action: 'logFueling', cardNumber: card, driverName: driver, liters };
+        if (receiptBase64) { payload.receiptBase64 = receiptBase64; payload.receiptMimeType = receiptMimeType; }
+
+        const res = await api(payload);
+
         if (res.error) {
           showResult(result, 'error', res.error);
         } else {
-          const badge = fuelBadge(res.fuelType);
+          const badge       = fuelBadge(res.fuelType);
+          const receiptLink = res.receiptUrl
+            ? `<a href="${res.receiptUrl}" target="_blank"
+                 style="display:inline-block;margin-top:10px;font-size:12px;color:#60a5fa;text-decoration:underline">
+                 📎 צפה בקבלה
+               </a>`
+            : '';
           result.innerHTML = `
             <div class="result-success fade-in">
               <div class="text-3xl mb-2">✅</div>
               <p class="text-green-300 font-black text-lg mb-1">תדלוק בוצע בהצלחה</p>
-              <p class="text-gray-400 text-sm mb-3">כרטיס <span class="text-white font-bold">${card}</span> &nbsp;${badge}</p>
+              <p class="text-gray-400 text-sm mb-3">
+                כרטיס <span class="text-white font-bold">${card}</span> &nbsp;${badge}
+              </p>
               <div class="bg-black/30 rounded-2xl py-3 px-4 inline-block">
                 <span class="text-white text-3xl font-black">${res.remaining.toLocaleString('he-IL')}</span>
-                <span class="text-gray-400 text-sm mr-1">ל׳ נותרו</span>
+                <span class="text-gray-400 text-sm mr-1">ל׳ נותרו (מקומי)</span>
               </div>
+              ${receiptLink}
             </div>`;
           result.classList.remove('hidden');
+          // נקה טופס
           document.getElementById('fuelCard').value   = '';
           document.getElementById('fuelDriver').value  = '';
           document.getElementById('fuelLiters').value  = '';
+          document.getElementById('receiptFile').value = '';
+          document.getElementById('uploadZone').classList.remove('has-file');
+          document.getElementById('uploadLabel').textContent = '📷 צלם קבלה / בחר תמונה';
+          document.getElementById('receiptPreview').classList.add('hidden');
         }
       } catch {
         showResult(result, 'error', 'שגיאת תקשורת — נסה שנית');
@@ -238,7 +290,6 @@
       const result = document.getElementById('balanceResult');
 
       if (!card) return showResult(result, 'error', 'נא להזין מספר כרטיס');
-
       setLoading(btn, true, 'בודק...');
       result.classList.add('hidden');
 
@@ -253,10 +304,12 @@
           const color = left <= 5 ? '#f87171' : left <= 15 ? '#fbbf24' : '#ffffff';
           const warn  = left <= 5 ? '<p class="text-red-400 text-xs font-bold mt-1">⚠️ כמעט ריק!</p>' : '';
           result.innerHTML = `
-            <div class="card text-center fade-in" style="space-y:8px">
+            <div class="card text-center fade-in">
               <p class="text-gray-500 text-sm">${c.cardName || 'כרטיס'} &nbsp;${badge}</p>
               <p class="text-gray-600 text-xs mb-2">מס׳ ${c.cardNumber}</p>
-              <p style="color:${color};font-size:3.5rem;font-weight:900;line-height:1;margin:12px 0">${left.toLocaleString('he-IL', {minimumFractionDigits:2, maximumFractionDigits:2})}</p>
+              <p style="color:${color};font-size:3.5rem;font-weight:900;line-height:1;margin:12px 0">
+                ${left.toLocaleString('he-IL', {minimumFractionDigits:2,maximumFractionDigits:2})}
+              </p>
               <p class="text-gray-500 text-sm mb-2">ליטרים שנותרו</p>
               ${warn}
               <div style="background:rgba(255,255,255,0.04);border-radius:12px;padding:10px;margin-top:12px;font-size:12px;color:#6b7280;display:grid;grid-template-columns:1fr 1fr;gap:6px;text-align:right">
@@ -274,7 +327,7 @@
       }
     }
 
-    // Enter support
+    // Enter key support
     document.addEventListener('keydown', e => {
       if (e.key !== 'Enter') return;
       if (!document.getElementById('panelFuel').classList.contains('hidden')) submitFueling();
@@ -298,15 +351,13 @@
     function setLoading(btn, on, label) {
       btn.disabled = on;
       btn.innerHTML = on
-        ? '<span class="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full spin"></span>'
+        ? `<span class="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full spin"></span> ${label}`
         : label;
     }
 
     async function api(body) {
       const res = await fetch(API_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body:    JSON.stringify(body)
+        method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(body)
       });
       return res.json();
     }

@@ -8,69 +8,49 @@
   <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700;900&display=swap" rel="stylesheet">
   <style>
     * { font-family: 'Heebo', sans-serif; }
-
-    body {
-      background: radial-gradient(ellipse at top, #0f1f3d 0%, #030712 65%);
-      min-height: 100vh;
-    }
+    body { background: radial-gradient(ellipse at top, #0f1f3d 0%, #030712 65%); min-height: 100vh; }
 
     .fade-in { animation: fadeIn 0.3s ease-out; }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to   { opacity: 1; transform: translateY(0); }
-    }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
     .spin { animation: spin 0.8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .input-field {
-      width: 100%;
-      background: rgba(255,255,255,0.05);
-      border: 1.5px solid rgba(255,255,255,0.1);
-      color: #fff;
-      border-radius: 12px;
-      padding: 10px 14px;
-      font-size: 15px;
-      outline: none;
-      transition: all 0.2s;
-      -webkit-appearance: none;
+      width: 100%; background: rgba(255,255,255,0.05); border: 1.5px solid rgba(255,255,255,0.1);
+      color: #fff; border-radius: 12px; padding: 10px 14px; font-size: 15px;
+      outline: none; transition: all 0.2s; -webkit-appearance: none;
     }
     .input-field::placeholder { color: #4b5563; }
-    .input-field:focus {
-      border-color: #3b82f6;
-      background: rgba(59,130,246,0.08);
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
-    }
-
-    select.input-field option { background: #1f2937; }
+    .input-field:focus { border-color: #3b82f6; background: rgba(59,130,246,0.08); box-shadow: 0 0 0 3px rgba(59,130,246,0.15); }
 
     .btn-green {
-      background: linear-gradient(135deg, #16a34a, #15803d);
-      color: white; font-weight: 700; font-size: 15px;
-      padding: 11px 20px; border-radius: 12px; border: none;
-      cursor: pointer; transition: all 0.2s;
-      box-shadow: 0 4px 16px rgba(22,163,74,0.3);
-      white-space: nowrap;
+      background: linear-gradient(135deg, #16a34a, #15803d); color: white; font-weight: 700; font-size: 15px;
+      padding: 11px 22px; border-radius: 12px; border: none; cursor: pointer; transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(22,163,74,0.3); white-space: nowrap;
     }
     .btn-green:hover   { background: linear-gradient(135deg, #22c55e, #16a34a); }
     .btn-green:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .card {
-      background: rgba(255,255,255,0.03);
-      border: 1px solid rgba(255,255,255,0.07);
-      border-radius: 18px;
-      backdrop-filter: blur(8px);
+    .btn-import {
+      background: rgba(59,130,246,0.15); color: #93c5fd; font-size: 11px; font-weight: 700;
+      padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(59,130,246,0.25);
+      cursor: pointer; transition: all 0.15s; white-space: nowrap;
     }
+    .btn-import:hover   { background: rgba(59,130,246,0.3); color: #fff; }
+    .btn-import:disabled { opacity: 0.4; cursor: not-allowed; }
 
-    .badge-benzin { background: rgba(20,83,45,0.7); color: #86efac; border: 1px solid rgba(34,197,94,0.25); }
-    .badge-soler  { background: rgba(78,53,0,0.7);  color: #fcd34d; border: 1px solid rgba(251,191,36,0.25); }
+    .card {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 18px; backdrop-filter: blur(8px);
+    }
+    .badge-benzin { background: rgba(20,83,45,0.7);  color: #86efac; border: 1px solid rgba(34,197,94,0.25); }
+    .badge-soler  { background: rgba(78,53,0,0.7);   color: #fcd34d; border: 1px solid rgba(251,191,36,0.25); }
     .badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
   </style>
 </head>
 <body>
 
-  <!-- ══════════════════════════════════════════
-       LOGIN SCREEN
-  ══════════════════════════════════════════ -->
+  <!-- LOGIN -->
   <div id="loginScreen" class="min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-xs fade-in">
       <div class="text-center mb-8">
@@ -83,13 +63,11 @@
           <div>
             <label class="text-gray-400 text-xs font-semibold block mb-2">סיסמת מנהל</label>
             <input id="passwordInput" type="password" placeholder="••••••••"
-              autocomplete="current-password"
-              class="input-field text-lg tracking-widest"
-            />
+              autocomplete="current-password" class="input-field text-lg tracking-widest" />
           </div>
           <div id="loginError" class="hidden text-red-400 text-sm text-center font-bold"></div>
           <button type="submit" id="loginBtn"
-            style="width:100%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:800;font-size:16px;padding:14px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(37,99,235,0.35);transition:all 0.2s">
+            style="width:100%;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:800;font-size:16px;padding:14px;border-radius:12px;border:none;cursor:pointer;box-shadow:0 4px 20px rgba(37,99,235,0.35)">
             כניסה
           </button>
         </form>
@@ -100,12 +78,9 @@
     </div>
   </div>
 
-  <!-- ══════════════════════════════════════════
-       ADMIN PANEL
-  ══════════════════════════════════════════ -->
+  <!-- ADMIN PANEL -->
   <div id="adminPanel" class="hidden min-h-screen">
 
-    <!-- Top Bar -->
     <header class="border-b border-white/5 px-4 sm:px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-2.5">
         <span class="text-xl">⛽</span>
@@ -114,13 +89,13 @@
       <button onclick="logout()" class="text-gray-500 hover:text-white text-sm transition-colors">יציאה ↩</button>
     </header>
 
-    <main class="max-w-4xl mx-auto p-3 sm:p-6 space-y-4">
+    <main class="max-w-5xl mx-auto p-3 sm:p-6 space-y-4">
 
       <!-- Stats -->
       <div id="statsBar" class="grid grid-cols-3 gap-2 sm:gap-3 fade-in">
         <div class="card p-3 sm:p-4 text-center">
           <p class="text-gray-500 text-xs mb-1">סה״כ כרטיסים</p>
-          <p id="statTotal" class="text-white text-xl sm:text-2xl font-black">—</p>
+          <p id="statTotal"  class="text-white text-xl sm:text-2xl font-black">—</p>
         </div>
         <div class="card p-3 sm:p-4 text-center">
           <p class="text-gray-500 text-xs mb-1">בנזין</p>
@@ -128,46 +103,41 @@
         </div>
         <div class="card p-3 sm:p-4 text-center">
           <p class="text-gray-500 text-xs mb-1">סולר</p>
-          <p id="statSoler" class="text-amber-400 text-xl sm:text-2xl font-black">—</p>
+          <p id="statSoler"  class="text-amber-400 text-xl sm:text-2xl font-black">—</p>
         </div>
       </div>
 
-      <!-- Add Card Form -->
+      <!-- Add Card -->
       <div class="card p-4 sm:p-5 fade-in">
         <h2 class="text-white font-bold mb-4 text-sm flex items-center gap-1.5">
           <span class="text-green-400 text-base">＋</span> הוספת כרטיס חדש
         </h2>
+        <p class="text-gray-600 text-xs mb-3">המידע (סוג דלק, ליטרים, שם) יובא אוטומטית מגודי</p>
         <form id="addForm" onsubmit="addCard(event)" class="space-y-3">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="text-gray-400 text-xs font-semibold block mb-1.5">מספר כרטיס</label>
-              <input id="newCardNumber" type="text" inputmode="numeric" placeholder="1234"
+              <input id="newCardNumber" type="text" inputmode="numeric" placeholder="104098267"
                 class="input-field" required />
             </div>
             <div>
-              <label class="text-gray-400 text-xs font-semibold block mb-1.5">סוג דלק</label>
-              <select id="newFuelType" class="input-field" required>
-                <option value="">בחר...</option>
-                <option value="בנזין">⛽ בנזין</option>
-                <option value="סולר">🟡 סולר</option>
-              </select>
-            </div>
-            <div>
-              <label class="text-gray-400 text-xs font-semibold block mb-1.5">ליטרים</label>
-              <input id="newLiters" type="number" min="0" step="0.5" placeholder="400"
-                class="input-field" required />
-            </div>
-            <div>
-              <label class="text-gray-400 text-xs font-semibold block mb-1.5">הערות (אופציונלי)</label>
-              <input id="newNotes" type="text" placeholder="..."
+              <label class="text-gray-400 text-xs font-semibold block mb-1.5">הערה (אופציונלי)</label>
+              <input id="newNotes" type="text" placeholder="למשל: רכב 4×4"
                 class="input-field" />
             </div>
           </div>
           <div class="flex items-center gap-3 pt-1">
-            <button type="submit" id="addBtn" class="btn-green">הוסף כרטיס</button>
+            <button type="submit" id="addBtn" class="btn-green">
+              הוסף כרטיס
+            </button>
             <span id="addMsg" class="text-sm font-bold hidden"></span>
           </div>
         </form>
+
+        <!-- Goodi result after add -->
+        <div id="addGoodiResult" class="hidden mt-4 p-3 rounded-xl fade-in"
+          style="background:rgba(20,83,45,0.25);border:1px solid rgba(34,197,94,0.2)">
+        </div>
       </div>
 
       <!-- Cards Table -->
@@ -175,27 +145,24 @@
         <div class="px-4 sm:px-5 py-4 border-b border-white/5 flex items-center justify-between">
           <h2 class="text-white font-bold text-sm">כל הכרטיסים</h2>
           <button onclick="loadCards()" id="refreshBtn"
-            class="text-gray-500 hover:text-white text-sm transition-colors">
-            רענן ↻
-          </button>
+            class="text-gray-500 hover:text-white text-sm transition-colors">רענן ↻</button>
         </div>
 
-        <!-- Loading -->
         <div id="tableLoading" class="py-12 text-center text-gray-600">
           <div class="inline-block w-6 h-6 border-2 border-gray-700 border-t-blue-400 rounded-full spin mb-2"></div>
           <p class="text-sm">טוען נתונים...</p>
         </div>
 
-        <!-- Table (scrollable on mobile) -->
         <div id="tableWrap" class="hidden overflow-x-auto">
-          <table class="w-full text-sm" style="min-width:420px">
+          <table class="w-full text-sm" style="min-width:560px">
             <thead>
               <tr class="border-b border-white/5">
-                <th class="px-4 py-3 text-right text-gray-500 text-xs font-semibold">מספר כרטיס</th>
-                <th class="px-4 py-3 text-right text-gray-500 text-xs font-semibold">סוג</th>
-                <th class="px-4 py-3 text-right text-gray-500 text-xs font-semibold">ליטרים</th>
-                <th class="px-4 py-3 text-right text-gray-500 text-xs font-semibold">הערות</th>
-                <th class="px-4 py-3 text-right text-gray-500 text-xs font-semibold">פעולות</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">מספר כרטיס</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">שם כרטיס</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">סוג</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">נשאר</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">הערה</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">פעולות</th>
               </tr>
             </thead>
             <tbody id="cardsBody"></tbody>
@@ -210,31 +177,9 @@
     </main>
   </div>
 
-  <!-- Edit Liters Modal -->
-  <div id="editModal" class="hidden fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center p-4 z-50" style="backdrop-filter:blur(4px)">
-    <div class="card p-6 w-full max-w-xs fade-in" style="border-radius:20px">
-      <h3 class="text-white font-bold mb-4">עדכון ליטרים</h3>
-      <p class="text-gray-400 text-sm mb-3">כרטיס: <span id="editCardNum" class="text-white font-bold"></span></p>
-      <input id="editLitersInput" type="number" min="0" step="0.5"
-        class="input-field text-xl text-center font-bold mb-4" style="font-size:22px;padding:14px" />
-      <div class="flex gap-3">
-        <button onclick="saveEditLiters()"
-          style="flex:1;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:700;padding:12px;border-radius:12px;border:none;cursor:pointer;">
-          שמור
-        </button>
-        <button onclick="closeEditModal()"
-          style="flex:1;background:rgba(255,255,255,0.07);color:#fff;font-weight:700;padding:12px;border-radius:12px;border:none;cursor:pointer;">
-          ביטול
-        </button>
-      </div>
-    </div>
-  </div>
-
   <script src="config.js"></script>
   <script>
-    let TOKEN    = localStorage.getItem('delek_token');
-    let editCard = null;
-
+    let TOKEN = localStorage.getItem('delek_token');
     if (TOKEN) showPanel();
 
     // ── Login ──
@@ -243,32 +188,24 @@
       const pw  = document.getElementById('passwordInput').value;
       const err = document.getElementById('loginError');
       const btn = document.getElementById('loginBtn');
-
       err.classList.add('hidden');
       btn.disabled = true;
-      btn.innerHTML = '<span class="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full" style="animation:spin 0.8s linear infinite;display:inline-block"></span>';
-
+      btn.innerHTML = '<span class="inline-block w-5 h-5 border-2 border-white border-t-transparent rounded-full" style="animation:spin 0.8s linear infinite"></span>';
       try {
         const res = await api({ action: 'adminLogin', password: pw });
         if (res.error) { showLoginErr(res.error); return; }
         TOKEN = res.token;
         localStorage.setItem('delek_token', TOKEN);
         showPanel();
-      } catch {
-        showLoginErr('שגיאת תקשורת');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'כניסה';
-      }
+      } catch { showLoginErr('שגיאת תקשורת'); }
+      finally { btn.disabled = false; btn.textContent = 'כניסה'; }
     }
 
     function showLoginErr(msg) {
       const el = document.getElementById('loginError');
-      el.textContent = msg;
-      el.classList.remove('hidden');
+      el.textContent = msg; el.classList.remove('hidden');
     }
 
-    // ── Panel ──
     function showPanel() {
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('adminPanel').classList.remove('hidden');
@@ -276,8 +213,7 @@
     }
 
     function logout() {
-      localStorage.removeItem('delek_token');
-      TOKEN = null;
+      localStorage.removeItem('delek_token'); TOKEN = null;
       document.getElementById('adminPanel').classList.add('hidden');
       document.getElementById('loginScreen').classList.remove('hidden');
       document.getElementById('passwordInput').value = '';
@@ -287,7 +223,6 @@
     async function loadCards() {
       document.getElementById('tableLoading').classList.remove('hidden');
       document.getElementById('tableWrap').classList.add('hidden');
-
       try {
         const res = await api({ action: 'getCards', token: TOKEN });
         if (res.error === 'אין הרשאה') { logout(); return; }
@@ -302,36 +237,34 @@
     function renderTable(cards) {
       const tbody = document.getElementById('cardsBody');
       const empty = document.getElementById('emptyState');
-
       document.getElementById('tableLoading').classList.add('hidden');
       document.getElementById('tableWrap').classList.remove('hidden');
 
-      if (!cards.length) {
-        tbody.innerHTML = '';
-        empty.classList.remove('hidden');
-        return;
-      }
+      if (!cards.length) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
       empty.classList.add('hidden');
 
       tbody.innerHTML = cards.map(c => {
-        const badge = c.fuelType === 'בנזין'
-          ? '<span class="badge badge-benzin">בנזין</span>'
-          : '<span class="badge badge-soler">סולר</span>';
-        const litColor = c.liters <= 50 ? 'color:#f87171;font-weight:700' : c.liters <= 150 ? 'color:#fbbf24;font-weight:700' : 'color:#fff';
+        const badge     = fuelBadge(c.fuelType);
+        const litColor  = c.liters <= 10 ? 'color:#f87171;font-weight:700' : c.liters <= 30 ? 'color:#fbbf24;font-weight:700' : 'color:#e5e7eb';
+        const updatedAt = c.lastUpdated ? new Date(c.lastUpdated).toLocaleDateString('he-IL') : '—';
         return `
-          <tr class="border-t border-white/5 hover:bg-white/3 transition-colors" style="transition:background 0.15s">
-            <td class="px-4 py-3 text-white font-bold text-sm">${c.cardNumber}</td>
-            <td class="px-4 py-3">${badge}</td>
-            <td class="px-4 py-3 text-sm" style="${litColor}">${c.liters.toLocaleString('he-IL')} ל׳
-              <button onclick="openEditModal('${c.cardNumber}',${c.liters})"
-                class="mr-2 text-gray-600 hover:text-blue-400 transition-colors text-xs">✏️</button>
+          <tr class="border-t border-white/5 hover:bg-white/[0.02] transition-colors">
+            <td class="px-3 py-3 text-white font-bold text-sm">${c.cardNumber}</td>
+            <td class="px-3 py-3 text-gray-300 text-xs">${c.cardName || '—'}</td>
+            <td class="px-3 py-3">${badge}</td>
+            <td class="px-3 py-3 text-sm" style="${litColor}">${c.liters.toLocaleString('he-IL')} ל׳
+              <span class="text-gray-700 text-xs mr-1">(${updatedAt})</span>
             </td>
-            <td class="px-4 py-3 text-gray-500 text-xs">${c.notes || '—'}</td>
-            <td class="px-4 py-3">
-              <button onclick="deleteCard('${c.cardNumber}')"
-                class="text-red-500 hover:text-red-300 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10">
-                מחק
-              </button>
+            <td class="px-3 py-3 text-gray-500 text-xs">${c.notes || '—'}</td>
+            <td class="px-3 py-3">
+              <div class="flex items-center gap-2">
+                <button id="import-${c.cardNumber}" onclick="refreshCard('${c.cardNumber}')"
+                  class="btn-import">⬇ ייבא</button>
+                <button onclick="deleteCard('${c.cardNumber}')"
+                  class="text-red-500 hover:text-red-300 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10">
+                  מחק
+                </button>
+              </div>
             </td>
           </tr>`;
       }).join('');
@@ -348,43 +281,56 @@
       e.preventDefault();
       const btn = document.getElementById('addBtn');
       const msg = document.getElementById('addMsg');
+      const gooRes = document.getElementById('addGoodiResult');
       msg.classList.add('hidden');
-
-      const payload = {
-        action:     'addCard',
-        token:      TOKEN,
-        cardNumber: document.getElementById('newCardNumber').value.trim(),
-        fuelType:   document.getElementById('newFuelType').value,
-        liters:     parseFloat(document.getElementById('newLiters').value),
-        notes:      document.getElementById('newNotes').value.trim()
-      };
+      gooRes.classList.add('hidden');
 
       btn.disabled = true;
-      btn.textContent = '...';
+      btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" style="animation:spin 0.8s linear infinite"></span> מייבא מגודי...';
 
       try {
-        const res = await api(payload);
+        const res = await api({
+          action:     'addCard',
+          token:      TOKEN,
+          cardNumber: document.getElementById('newCardNumber').value.trim(),
+          notes:      document.getElementById('newNotes').value.trim()
+        });
         if (res.error) {
           showAddMsg(res.error, '#f87171');
         } else {
+          const m = res.meta || {};
+          gooRes.innerHTML = `
+            <div class="flex items-center gap-3 flex-wrap">
+              <span class="text-green-400 font-black text-sm">✅ נוסף בהצלחה</span>
+              ${m.cardName ? `<span class="text-gray-300 text-xs">${m.cardName}</span>` : ''}
+              ${fuelBadge(m.fuelType)}
+              <span class="text-white font-bold text-sm">${(m.liters||0).toLocaleString('he-IL')} ל׳</span>
+            </div>`;
+          gooRes.classList.remove('hidden');
           document.getElementById('addForm').reset();
-          showAddMsg('✅ הכרטיס נוסף בהצלחה', '#4ade80');
           loadCards();
         }
-      } catch {
-        showAddMsg('שגיאת תקשורת', '#f87171');
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'הוסף כרטיס';
-      }
+      } catch { showAddMsg('שגיאת תקשורת', '#f87171'); }
+      finally { btn.disabled = false; btn.textContent = 'הוסף כרטיס'; }
     }
 
     function showAddMsg(text, color) {
       const el = document.getElementById('addMsg');
-      el.style.color = color;
-      el.textContent = text;
+      el.style.color = color; el.textContent = text;
       el.classList.remove('hidden');
-      setTimeout(() => el.classList.add('hidden'), 3500);
+      setTimeout(() => el.classList.add('hidden'), 4000);
+    }
+
+    // ── Refresh from Goodi ──
+    async function refreshCard(cn) {
+      const btn = document.getElementById('import-' + cn);
+      if (btn) { btn.disabled = true; btn.textContent = '...'; }
+      try {
+        const res = await api({ action: 'refreshCard', token: TOKEN, cardNumber: cn });
+        if (res.error) { alert(res.error); return; }
+        loadCards();
+      } catch { alert('שגיאת תקשורת'); }
+      finally { if (btn) { btn.disabled = false; btn.textContent = '⬇ ייבא'; } }
     }
 
     // ── Delete ──
@@ -397,36 +343,18 @@
       } catch { alert('שגיאת תקשורת'); }
     }
 
-    // ── Edit Modal ──
-    function openEditModal(cn, liters) {
-      editCard = cn;
-      document.getElementById('editCardNum').textContent   = cn;
-      document.getElementById('editLitersInput').value     = liters;
-      document.getElementById('editModal').classList.remove('hidden');
+    // ── Helpers ──
+    function fuelBadge(type) {
+      return type === 'בנזין'
+        ? '<span class="badge badge-benzin">בנזין</span>'
+        : type === 'סולר'
+        ? '<span class="badge badge-soler">סולר</span>'
+        : '<span class="badge" style="background:rgba(75,85,99,0.4);color:#9ca3af">—</span>';
     }
 
-    function closeEditModal() {
-      editCard = null;
-      document.getElementById('editModal').classList.add('hidden');
-    }
-
-    async function saveEditLiters() {
-      const liters = parseFloat(document.getElementById('editLitersInput').value);
-      if (isNaN(liters) || liters < 0) { alert('ערך לא תקין'); return; }
-      try {
-        const res = await api({ action: 'updateLiters', token: TOKEN, cardNumber: editCard, liters });
-        if (res.error) { alert(res.error); return; }
-        closeEditModal();
-        loadCards();
-      } catch { alert('שגיאת תקשורת'); }
-    }
-
-    // ── API ──
     async function api(body) {
       const res = await fetch(API_URL, {
-        method:  'POST',
-        headers: { 'Content-Type': 'text/plain' },
-        body:    JSON.stringify(body)
+        method: 'POST', headers: { 'Content-Type': 'text/plain' }, body: JSON.stringify(body)
       });
       return res.json();
     }

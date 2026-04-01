@@ -4,10 +4,11 @@
  * ================================================================
  */
 
-/** הרץ פונקציה זו פעם אחת מה-editor כדי לאשר הרשאות UrlFetchApp */
+/** הרץ פונקציה זו מה-editor כדי לאשר הרשאות UrlFetchApp + Drive */
 function authorizeUrlFetch() {
-  const resp = UrlFetchApp.fetch('https://www.google.com', { muteHttpExceptions: true });
-  Logger.log('Authorization OK: ' + resp.getResponseCode());
+  UrlFetchApp.fetch('https://www.google.com', { muteHttpExceptions: true });
+  DriveApp.getFolderById('1OjgLBZUvZcVyQHjqZYrWzy7gAEwVymY6');
+  Logger.log('Authorization OK: UrlFetch + Drive');
 }
 
 const GOODI_URL = 'https://fueladmin.goodi.co.il/_fuel/';

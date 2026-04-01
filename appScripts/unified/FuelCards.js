@@ -5,9 +5,11 @@
  * מבנה עמודות הגיליון:
  *   A = מספר כרטיס
  *   B = סוג דלק (בנזין / סולר)
- *   C = ליטרים שנותרו
+ *   C = ליטרים שנותרו (מסונכרן עם גודי)
  *   D = הערות
  *   E = תאריך הוספה
+ *   F = שם כרטיס (מגודי)
+ *   G = עדכון אחרון מגודי
  * ================================================================
  */
 
@@ -18,8 +20,16 @@ class FuelCardsManager {
     let sheet = ss.getSheetByName(CONFIG.FUEL.SHEET_NAME);
     if (!sheet) {
       sheet = ss.insertSheet(CONFIG.FUEL.SHEET_NAME);
-      sheet.appendRow(['מספר כרטיס', 'סוג דלק', 'ליטרים שנותרו', 'הערות', 'תאריך הוספה']);
-      const hr = sheet.getRange(1, 1, 1, 5);
+      sheet.appendRow([
+        '\u05de\u05e1\u05e4\u05e8 \u05db\u05e8\u05d8\u05d9\u05e1',   // מספר כרטיס
+        '\u05e1\u05d5\u05d2 \u05d3\u05dc\u05e7',                       // סוג דלק
+        '\u05dc\u05d9\u05d8\u05e8\u05d9\u05dd \u05e9\u05e0\u05d5\u05ea\u05e8\u05d5', // ליטרים שנותרו
+        '\u05d4\u05e2\u05e8\u05d5\u05ea',                               // הערות
+        '\u05ea\u05d0\u05e8\u05d9\u05da \u05d4\u05d5\u05e1\u05e4\u05d4', // תאריך הוספה
+        '\u05e9\u05dd \u05db\u05e8\u05d8\u05d9\u05e1',                  // שם כרטיס
+        '\u05e2\u05d3\u05db\u05d5\u05df \u05d0\u05d7\u05e8\u05d5\u05df \u05de\u05d2\u05d5\u05d3\u05d9' // עדכון אחרון מגודי
+      ]);
+      const hr = sheet.getRange(1, 1, 1, 7);
       hr.setBackground(CONFIG.FUEL.HEADER_COLOR);
       hr.setFontColor('#FFFFFF');
       hr.setFontWeight('bold');
@@ -40,7 +50,8 @@ class FuelCardsManager {
           cardNumber: rows[i][0].toString().trim(),
           fuelType:   rows[i][1],
           liters:     parseFloat(rows[i][2]) || 0,
-          notes:      rows[i][3] || ''
+          notes:      rows[i][3] || '',
+          cardName:   rows[i][5] || ''
         };
       }
     }
@@ -56,48 +67,78 @@ class FuelCardsManager {
     for (let i = 1; i < rows.length; i++) {
       if (!rows[i][0]) continue;
       cards.push({
-        cardNumber: rows[i][0].toString().trim(),
-        fuelType:   rows[i][1],
-        liters:     parseFloat(rows[i][2]) || 0,
-        notes:      rows[i][3] || '',
-        dateAdded:  rows[i][4] || ''
+        cardNumber:  rows[i][0].toString().trim(),
+        fuelType:    rows[i][1] || '',
+        liters:      parseFloat(rows[i][2]) || 0,
+        notes:       rows[i][3] || '',
+        dateAdded:   rows[i][4] || '',
+        cardName:    rows[i][5] || '',
+        lastUpdated: rows[i][6] || ''
       });
     }
     return cards;
   }
 
-  // ── הוספת כרטיס (מנהל) ──
-  static addCard(cardData) {
+  // ── הוספת כרטיס — מייבא מידע מגודי אוטומטית ──
+  static addCard(cardNumber, notes) {
     const sheet = this._getSheet();
     const rows  = sheet.getDataRange().getValues();
-    const cn    = cardData.cardNumber.toString().trim();
+    const cn    = cardNumber.toString().trim();
 
-    if (!cn) throw new Error('מספר כרטיס לא יכול להיות ריק');
+    if (!cn) throw new Error('\u05de\u05e1\u05e4\u05e8 \u05db\u05e8\u05d8\u05d9\u05e1 \u05dc\u05d0 \u05d9\u05db\u05d5\u05dc \u05dc\u05d4\u05d9\u05d5\u05ea \u05e8\u05d9\u05e7'); // מספר כרטיס לא יכול להיות ריק
 
     for (let i = 1; i < rows.length; i++) {
       if (rows[i][0].toString().trim() === cn) {
-        throw new Error('כרטיס ' + cn + ' כבר קיים במערכת');
+        throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cn + ' \u05db\u05d1\u05e8 \u05e7\u05d9\u05d9\u05dd \u05d1\u05de\u05e2\u05e8\u05db\u05ea'); // כבר קיים
       }
     }
 
-    const fuelType = cardData.fuelType;
-    if (fuelType !== 'בנזין' && fuelType !== 'סולר') {
-      throw new Error('סוג דלק לא תקין — חייב להיות בנזין או סולר');
-    }
+    // שאב נתונים מגודי
+    const goodi = FuelGoodi.lookup(cn);
+    if (!goodi) throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cn + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0 \u05d1\u05d2\u05d5\u05d3\u05d9'); // לא נמצא בגודי
 
-    const liters = parseFloat(cardData.liters);
-    if (isNaN(liters) || liters < 0) {
-      throw new Error('כמות ליטרים לא תקינה');
-    }
-
+    const now = new Date().toISOString();
     sheet.appendRow([
       cn,
-      fuelType,
-      liters,
-      cardData.notes || '',
-      new Date().toISOString()
+      goodi.fuelType  || '',
+      goodi.litersLeft || 0,
+      notes || '',
+      now,
+      goodi.cardName  || '',
+      now
     ]);
-    return true;
+
+    return {
+      cardName: goodi.cardName,
+      fuelType: goodi.fuelType,
+      liters:   goodi.litersLeft
+    };
+  }
+
+  // ── סנכרן כרטיס עם גודי (מנהל) ──
+  static refreshCard(cardNumber) {
+    const sheet = this._getSheet();
+    const rows  = sheet.getDataRange().getValues();
+    const cn    = cardNumber.toString().trim();
+
+    const goodi = FuelGoodi.lookup(cn);
+    if (!goodi) throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cn + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0 \u05d1\u05d2\u05d5\u05d3\u05d9');
+
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString().trim() === cn) {
+        const row = i + 1;
+        sheet.getRange(row, 2).setValue(goodi.fuelType  || '');
+        sheet.getRange(row, 3).setValue(goodi.litersLeft || 0);
+        sheet.getRange(row, 6).setValue(goodi.cardName  || '');
+        sheet.getRange(row, 7).setValue(new Date().toISOString());
+        return {
+          cardName: goodi.cardName,
+          fuelType: goodi.fuelType,
+          liters:   goodi.litersLeft
+        };
+      }
+    }
+    throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0 \u05d1\u05de\u05e2\u05e8\u05db\u05ea'); // לא נמצא במערכת
   }
 
   // ── מחיקת כרטיס (מנהל) ──
@@ -112,60 +153,47 @@ class FuelCardsManager {
         return true;
       }
     }
-    throw new Error('כרטיס ' + cardNumber + ' לא נמצא');
+    throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0'); // לא נמצא
   }
 
-  // ── עדכון ליטרים (מנהל) ──
-  static updateLiters(cardNumber, liters) {
-    const sheet = this._getSheet();
-    const rows  = sheet.getDataRange().getValues();
-    const cn    = cardNumber.toString().trim();
-    const val   = parseFloat(liters);
-
-    if (isNaN(val) || val < 0) throw new Error('כמות ליטרים לא תקינה');
-
-    for (let i = 1; i < rows.length; i++) {
-      if (rows[i][0].toString().trim() === cn) {
-        sheet.getRange(i + 1, 3).setValue(val);
-        return true;
-      }
-    }
-    throw new Error('כרטיס ' + cardNumber + ' לא נמצא');
-  }
-
-  // ── תדלוק — מנכה ליטרים ומתעד (ציבורי) ──
-  static logFueling(cardNumber, driverName, liters) {
+  // ── תדלוק — מתעד בהיסטוריה (ציבורי) ──
+  static logFueling(cardNumber, driverName, liters, receiptUrl) {
     const sheet = this._getSheet();
     const rows  = sheet.getDataRange().getValues();
     const cn    = cardNumber.toString().trim();
     const amt   = parseFloat(liters);
 
-    if (isNaN(amt) || amt <= 0) throw new Error('כמות ליטרים לא תקינה');
-    if (!driverName || !driverName.toString().trim()) throw new Error('חסר שם מתדלק');
+    if (isNaN(amt) || amt <= 0) throw new Error('\u05db\u05de\u05d5\u05ea \u05dc\u05d9\u05d8\u05e8\u05d9\u05dd \u05dc\u05d0 \u05ea\u05e7\u05d9\u05e0\u05d4'); // כמות ליטרים לא תקינה
+    if (!driverName || !driverName.toString().trim()) throw new Error('\u05d7\u05e1\u05e8 \u05e9\u05dd \u05de\u05ea\u05d3\u05dc\u05e7'); // חסר שם מתדלק
 
     for (let i = 1; i < rows.length; i++) {
       if (rows[i][0].toString().trim() === cn) {
         const remaining = parseFloat(rows[i][2]) || 0;
-        if (amt > remaining) {
-          throw new Error('אין מספיק ליטרים בכרטיס (נותרו ' + remaining + ' ל׳)');
-        }
-        const newRemaining = Math.round((remaining - amt) * 10) / 10;
+        const newRemaining = Math.max(0, Math.round((remaining - amt) * 100) / 100);
         sheet.getRange(i + 1, 3).setValue(newRemaining);
-        this._logToHistory(cn, rows[i][1], driverName.toString().trim(), amt, newRemaining);
+        this._logToHistory(cn, rows[i][1], driverName.toString().trim(), amt, newRemaining, receiptUrl || '');
         return { remaining: newRemaining, fuelType: rows[i][1] };
       }
     }
-    throw new Error('כרטיס ' + cardNumber + ' לא נמצא');
+    throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0'); // לא נמצא
   }
 
   // ── גיליון היסטוריית תדלוקים ──
   static _getLogSheet() {
     const ss = SpreadsheetApp.openById(CONFIG.SHEETS.MAIN);
-    let sheet = ss.getSheetByName('תדלוקים');
+    let sheet = ss.getSheetByName('\u05ea\u05d3\u05dc\u05d5\u05e7\u05d9\u05dd'); // תדלוקים
     if (!sheet) {
-      sheet = ss.insertSheet('תדלוקים');
-      sheet.appendRow(['תאריך', 'מספר כרטיס', 'סוג דלק', 'שם מתדלק', 'ליטרים שתודלקו', 'יתרה לאחר תדלוק']);
-      const hr = sheet.getRange(1, 1, 1, 6);
+      sheet = ss.insertSheet('\u05ea\u05d3\u05dc\u05d5\u05e7\u05d9\u05dd');
+      sheet.appendRow([
+        '\u05ea\u05d0\u05e8\u05d9\u05da',             // תאריך
+        '\u05de\u05e1\u05e4\u05e8 \u05db\u05e8\u05d8\u05d9\u05e1', // מספר כרטיס
+        '\u05e1\u05d5\u05d2 \u05d3\u05dc\u05e7',       // סוג דלק
+        '\u05e9\u05dd \u05de\u05ea\u05d3\u05dc\u05e7', // שם מתדלק
+        '\u05dc\u05d9\u05d8\u05e8\u05d9\u05dd \u05e9\u05ea\u05d5\u05d3\u05dc\u05e7\u05d5', // ליטרים שתודלקו
+        '\u05d9\u05ea\u05e8\u05d4 \u05dc\u05d0\u05d7\u05e8 \u05ea\u05d3\u05dc\u05d5\u05e7', // יתרה לאחר תדלוק
+        '\u05e7\u05d1\u05dc\u05d4'                     // קבלה
+      ]);
+      const hr = sheet.getRange(1, 1, 1, 7);
       hr.setBackground('#1a73e8');
       hr.setFontColor('#FFFFFF');
       hr.setFontWeight('bold');
@@ -174,8 +202,8 @@ class FuelCardsManager {
     return sheet;
   }
 
-  static _logToHistory(cardNumber, fuelType, driverName, liters, remaining) {
+  static _logToHistory(cardNumber, fuelType, driverName, liters, remaining, receiptUrl) {
     const logSheet = this._getLogSheet();
-    logSheet.appendRow([new Date(), cardNumber, fuelType, driverName, liters, remaining]);
+    logSheet.appendRow([new Date(), cardNumber, fuelType, driverName, liters, remaining, receiptUrl || '']);
   }
 }

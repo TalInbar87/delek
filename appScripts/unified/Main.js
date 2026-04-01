@@ -85,13 +85,15 @@ function doPost(e) {
 
       case 'addCard': {
         if (!AdminAuth.verifyToken(data.token)) return _json({ error: 'אין הרשאה' });
-        FuelCardsManager.addCard({
-          cardNumber: data.cardNumber,
-          fuelType:   data.fuelType,
-          liters:     data.liters,
-          notes:      data.notes || ''
-        });
-        return _json({ success: true });
+        const meta = FuelCardsManager.addCard(data.cardNumber, data.notes || '');
+        return _json({ success: true, meta });
+      }
+
+      case 'refreshCard': {
+        if (!AdminAuth.verifyToken(data.token)) return _json({ error: 'אין הרשאה' });
+        if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
+        const refreshed = FuelCardsManager.refreshCard(data.cardNumber);
+        return _json({ success: true, meta: refreshed });
       }
 
       case 'deleteCard': {
@@ -123,8 +125,21 @@ function doPost(e) {
         if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
         if (!data.driverName) return _json({ error: 'חסר שם מתדלק' });
         if (!data.liters)     return _json({ error: 'חסר כמות ליטרים' });
-        const result = FuelCardsManager.logFueling(data.cardNumber, data.driverName, data.liters);
-        return _json({ success: true, remaining: result.remaining, fuelType: result.fuelType });
+
+        // העלאת קבלה ל-Drive אם סופקה תמונה
+        let receiptUrl = '';
+        if (data.receiptBase64 && data.receiptMimeType) {
+          receiptUrl = DriveUpload.uploadReceipt(
+            data.receiptBase64,
+            data.receiptMimeType,
+            data.driverName
+          );
+        }
+
+        const result = FuelCardsManager.logFueling(
+          data.cardNumber, data.driverName, data.liters, receiptUrl
+        );
+        return _json({ success: true, remaining: result.remaining, fuelType: result.fuelType, receiptUrl });
       }
 
       default:
