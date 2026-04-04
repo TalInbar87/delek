@@ -240,6 +240,7 @@
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('adminPanel').classList.remove('hidden');
       loadCards();
+      api({ action: 'warmCache' }).catch(() => {}); // חימום ViewState ברקע
     }
 
     function logout() {

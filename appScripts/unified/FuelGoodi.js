@@ -91,6 +91,20 @@ class FuelGoodi {
     return card;
   }
 
+  // ── מחמם את הקאש — קרא מהאדמין בעת הכניסה ──
+  static warmCache() {
+    const cache = CacheService.getScriptCache();
+    if (cache.get('goodi_vs1')) return; // כבר קיים
+    const html = UrlFetchApp.fetch(GOODI_URL, {
+      muteHttpExceptions: true, followRedirects: true,
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    }).getContentText('UTF-8');
+    const vs  = this._extractInput('__VIEWSTATE', html);
+    const ev  = this._extractInput('__EVENTVALIDATION', html);
+    const vsg = this._extractInput('__VIEWSTATEGENERATOR', html);
+    if (vs) cache.put('goodi_vs1', JSON.stringify({ vs, ev, vsg }), 300);
+  }
+
   // ── debug: מחזיר raw snippet מה-response ──
   static debug(cardNumber) {
     const card = this.lookup(cardNumber);

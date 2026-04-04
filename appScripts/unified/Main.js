@@ -108,6 +108,11 @@ function doPost(e) {
         return _json({ success: true });
       }
 
+      case 'warmCache': {
+        FuelGoodi.warmCache();
+        return _json({ ok: true });
+      }
+
       case 'lookupGoodi': {
         if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
         const card = FuelGoodi.lookup(data.cardNumber);
