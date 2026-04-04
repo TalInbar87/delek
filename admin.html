@@ -436,15 +436,25 @@
       document.getElementById('note-input-' + cn).focus();
     }
 
-    async function saveNote(cn) {
+    function saveNote(cn) {
       const input = document.getElementById('note-input-' + cn);
       if (!input) return;
       const notes = input.value.trim();
-      try {
-        const res = await api({ action: 'updateNotes', token: TOKEN, cardNumber: cn, notes });
-        if (res.error) { alert(res.error); return; }
-        loadCards();
-      } catch { alert('שגיאת תקשורת'); }
+      const display = notes || '—';
+
+      // החזר את התא מיד — ללא המתנה ל-API
+      const cell = document.getElementById('note-cell-' + cn);
+      cell.innerHTML = `
+        <div class="flex items-center gap-1.5">
+          <span id="note-text-${cn}" class="text-gray-500 text-xs">${display}</span>
+          <button onclick="editNote('${cn}','${notes.replace(/'/g,"&#39;")}')"
+            class="text-gray-700 hover:text-gray-400 text-xs transition-colors" title="ערוך הערה">✏️</button>
+        </div>`;
+
+      // שלח ל-API ברקע
+      api({ action: 'updateNotes', token: TOKEN, cardNumber: cn, notes })
+        .then(res => { if (res.error) alert(res.error); })
+        .catch(() => alert('שגיאת תקשורת'));
     }
 
     // ── Delete ──
