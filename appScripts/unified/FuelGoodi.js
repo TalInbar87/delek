@@ -97,7 +97,8 @@ class FuelGoodi {
       postStatus: postResp.getResponseCode(),
       resultLen:  result.length,
       hasLiters:  result.includes('\u05DC\u05D9\u05D8\u05E8\u05D9\u05DD \u05E9\u05E0\u05D5\u05EA\u05E8\u05D5'), // ליטרים שנותרו
-      snippet:    idx >= 0 ? result.substring(idx, idx + 600) : result.substring(0, 400)
+      snippet:    idx >= 0 ? result.substring(idx, idx + 600) : result.substring(0, 400),
+      reportSnip: (function() { const r = result.indexOf('CurrentReport'); return r >= 0 ? result.substring(r, r + 1500) : 'not found'; })()
     };
   }
 
