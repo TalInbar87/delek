@@ -443,7 +443,6 @@
       try {
         const res = await api({ action: 'updateNotes', token: TOKEN, cardNumber: cn, notes });
         if (res.error) { alert(res.error); return; }
-        document.getElementById('note-text-' + cn).textContent = notes || '—';
         loadCards();
       } catch { alert('שגיאת תקשורת'); }
     }
