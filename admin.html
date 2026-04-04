@@ -427,13 +427,24 @@
         <div class="flex items-center gap-1.5">
           <input id="note-input-${cn}" type="text" value="${current === '—' ? '' : current}"
             class="input-field text-xs py-1 px-2" style="font-size:12px;padding:5px 8px;border-radius:8px;width:120px"
-            onkeydown="if(event.key==='Enter')saveNote('${cn}');if(event.key==='Escape')loadCards()" />
+            onkeydown="if(event.key==='Enter')saveNote('${cn}');if(event.key==='Escape')cancelNote('${cn}','${current}')" />
           <button onclick="saveNote('${cn}')"
             class="text-green-400 hover:text-green-300 text-xs font-bold transition-colors">✓</button>
-          <button onclick="loadCards()"
+          <button onclick="cancelNote('${cn}','${current}')"
             class="text-gray-600 hover:text-gray-400 text-xs transition-colors">✕</button>
         </div>`;
       document.getElementById('note-input-' + cn).focus();
+    }
+
+    function cancelNote(cn, original) {
+      const display = original || '—';
+      const cell = document.getElementById('note-cell-' + cn);
+      cell.innerHTML = `
+        <div class="flex items-center gap-1.5">
+          <span id="note-text-${cn}" class="text-gray-500 text-xs">${display}</span>
+          <button onclick="editNote('${cn}','${original.replace(/'/g,"&#39;")}')"
+            class="text-gray-700 hover:text-gray-400 text-xs transition-colors" title="ערוך הערה">✏️</button>
+        </div>`;
     }
 
     function saveNote(cn) {
