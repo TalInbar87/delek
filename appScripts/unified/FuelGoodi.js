@@ -98,7 +98,14 @@ class FuelGoodi {
       resultLen:  result.length,
       hasLiters:  result.includes('\u05DC\u05D9\u05D8\u05E8\u05D9\u05DD \u05E9\u05E0\u05D5\u05EA\u05E8\u05D5'), // ליטרים שנותרו
       snippet:    idx >= 0 ? result.substring(idx, idx + 600) : result.substring(0, 400),
-      reportSnip: (function() { const r = result.indexOf('btnReport'); return r >= 0 ? result.substring(Math.max(0,r-200), r + 800) : result.substring(result.indexOf('CurrentReport'), result.indexOf('CurrentReport')+500); })()
+      reportSnip: (function() {
+        // חפש כל כפתור submit אחרי CardInfo
+        const ci = result.indexOf('CardInfo');
+        const sub = result.indexOf('type="submit"', ci);
+        const btn = result.indexOf('<button', ci);
+        const pos = Math.min(sub >= 0 ? sub : 99999, btn >= 0 ? btn : 99999);
+        return pos < 99999 ? result.substring(Math.max(0,pos-100), pos+400) : 'no submit found';
+      })()
     };
   }
 
