@@ -82,50 +82,10 @@ class FuelGoodi {
     return card;
   }
 
-  // ── debug: מחזיר raw snippet מה-response (כולל שלב 3 עם תאריכים) ──
+  // ── debug: מחזיר raw snippet מה-response ──
   static debug(cardNumber) {
-    const cn = cardNumber.toString().trim();
-    const html1 = UrlFetchApp.fetch(GOODI_URL, { muteHttpExceptions: true, headers: { 'User-Agent': 'Mozilla/5.0' } }).getContentText('UTF-8');
-    const vs1  = this._extractInput('__VIEWSTATE', html1);
-    const ev1  = this._extractInput('__EVENTVALIDATION', html1);
-    const vsg1 = this._extractInput('__VIEWSTATEGENERATOR', html1);
-
-    const resp2 = UrlFetchApp.fetch(GOODI_URL, {
-      method: 'post', muteHttpExceptions: true,
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': GOODI_URL },
-      payload: { 'RadStyleSheetManager1_TSSM': '', 'RadScriptManager1_TSM': '',
-        '__EVENTTARGET': '', '__EVENTARGUMENT': '',
-        '__VIEWSTATE': vs1, '__VIEWSTATEGENERATOR': vsg1, '__EVENTVALIDATION': ev1,
-        'ddSearchSelect': '3', 'tbSearch': cn, 'btnSearch': '\u05D7\u05E4\u05E9' }
-    });
-    const html2 = resp2.getContentText('UTF-8');
-    const vs2  = this._extractInput('__VIEWSTATE', html2);
-    const ev2  = this._extractInput('__EVENTVALIDATION', html2);
-    const vsg2 = this._extractInput('__VIEWSTATEGENERATOR', html2);
-
-    const today    = Utilities.formatDate(new Date(), 'Asia/Jerusalem', 'dd/MM/yyyy');
-    const monthAgo = Utilities.formatDate(new Date(Date.now() - 30*24*60*60*1000), 'Asia/Jerusalem', 'dd/MM/yyyy');
-    const html3 = UrlFetchApp.fetch(GOODI_URL, {
-      method: 'post', muteHttpExceptions: true,
-      headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': GOODI_URL },
-      payload: { 'RadStyleSheetManager1_TSSM': '', 'RadScriptManager1_TSM': '',
-        '__EVENTTARGET': '', '__EVENTARGUMENT': '',
-        '__VIEWSTATE': vs2, '__VIEWSTATEGENERATOR': vsg2, '__EVENTVALIDATION': ev2,
-        'ddSearchSelect': '3', 'tbSearch': cn,
-        'dpStart$dateInput': monthAgo, 'dpEnd$dateInput': today,
-        'btnApplyRange': '\u05D4\u05E6\u05D2' }
-    }).getContentText('UTF-8');
-
-    const idx = html3.indexOf('reportTabels');
-    return {
-      hasLiters:   html2.includes('\u05DC\u05D9\u05D8\u05E8\u05D9\u05DD \u05E9\u05E0\u05D5\u05EA\u05E8\u05D5'),
-      reportSnip:  (function() {
-        const rowIdx = html3.indexOf('rgRow');
-        if (rowIdx >= 0) return html3.substring(rowIdx, rowIdx + 2000);
-        const tIdx = html3.indexOf('reportTabels');
-        return tIdx >= 0 ? html3.substring(tIdx, tIdx + 3000) : 'not found';
-      })()
-    };
+    const card = this.lookup(cardNumber);
+    return { found: !!card, card };
   }
 
   // ── parse ──
@@ -150,6 +110,33 @@ class FuelGoodi {
       amountUsed,
       lastUsage:  (lastUsage || '').trim()
     };
+  }
+
+  // ── parse transaction rows from report table ──
+  // מבנה עמודות: vehicle | company | type | date | time | station | id | cardNum | liters
+  static _parseTransactions(html) {
+    const rows = [];
+    const rowRe = /<tr class="rg(?:Row|AltRow)"[^>]*>([\s\S]*?)<\/tr>/g;
+    const tdRe  = /<td>([\s\S]*?)<\/td>/g;
+    let row;
+    while ((row = rowRe.exec(html)) !== null) {
+      const cells = [];
+      let td;
+      const inner = row[1];
+      while ((td = tdRe.exec(inner)) !== null) cells.push(td[1].trim());
+      tdRe.lastIndex = 0;
+      if (cells.length >= 9) {
+        const dateRaw = cells[3].replace(' 00:00:00', '').trim();  // "31/03/2026"
+        rows.push({
+          date:    dateRaw,
+          time:    cells[4],
+          station: cells[5],
+          company: cells[1],
+          liters:  parseFloat(cells[8]) || 0
+        });
+      }
+    }
+    return rows;
   }
 
   static _extractInput(name, html) {

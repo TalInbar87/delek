@@ -132,9 +132,13 @@ class FuelCardsManager {
         sheet.getRange(row, 6).setValue(goodi.cardName  || '');
         sheet.getRange(row, 7).setValue(new Date().toISOString());
         return {
-          cardName: goodi.cardName,
-          fuelType: goodi.fuelType,
-          liters:   goodi.litersLeft
+          cardName:     goodi.cardName,
+          fuelType:     goodi.fuelType,
+          liters:       goodi.litersLeft,
+          litersUsed:   goodi.litersUsed,
+          amountUsed:   goodi.amountUsed,
+          lastUsage:    goodi.lastUsage,
+          recentUsages: goodi.recentUsages || []
         };
       }
     }
