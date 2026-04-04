@@ -23,17 +23,25 @@ class FuelGoodi {
 
   // ── שאילתה לפי מספר כרטיס — מחזיר { card } או null ──
   static lookup(cardNumber) {
-    const cn = cardNumber.toString().trim();
+    const cn    = cardNumber.toString().trim();
+    const cache = CacheService.getScriptCache();
 
-    // שלב 1: GET — קבל ViewState טרי
-    const html1 = UrlFetchApp.fetch(GOODI_URL, {
-      muteHttpExceptions: true, followRedirects: true,
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    }).getContentText('UTF-8');
-
-    const vs1  = this._extractInput('__VIEWSTATE', html1);
-    const ev1  = this._extractInput('__EVENTVALIDATION', html1);
-    const vsg1 = this._extractInput('__VIEWSTATEGENERATOR', html1);
+    // שלב 1: GET — קבל ViewState (מהקאש אם אפשר, חוסך ~1-2 שניות)
+    let vs1, ev1, vsg1;
+    const cached = cache.get('goodi_vs1');
+    if (cached) {
+      const p = JSON.parse(cached);
+      vs1 = p.vs; ev1 = p.ev; vsg1 = p.vsg;
+    } else {
+      const html1 = UrlFetchApp.fetch(GOODI_URL, {
+        muteHttpExceptions: true, followRedirects: true,
+        headers: { 'User-Agent': 'Mozilla/5.0' }
+      }).getContentText('UTF-8');
+      vs1  = this._extractInput('__VIEWSTATE', html1);
+      ev1  = this._extractInput('__EVENTVALIDATION', html1);
+      vsg1 = this._extractInput('__VIEWSTATEGENERATOR', html1);
+      if (vs1) cache.put('goodi_vs1', JSON.stringify({ vs: vs1, ev: ev1, vsg: vsg1 }), 300); // 5 דק׳
+    }
     if (!vs1) throw new Error('\u05dc\u05d0 \u05e0\u05d9\u05ea\u05df \u05dc\u05d8\u05e2\u05d5\u05df \u05d0\u05ea \u05d3\u05e3 \u05d2\u05d5\u05d3\u05d9'); // לא ניתן לטעון את דף גודי
 
     // שלב 2: POST עם מספר הכרטיס
@@ -127,8 +135,9 @@ class FuelGoodi {
       while ((td = tdRe.exec(inner)) !== null) cells.push(td[1].trim());
       tdRe.lastIndex = 0;
       if (cells.length >= 9) {
-        const dateRaw = cells[3].replace(' 00:00:00', '').trim();  // "31/03/2026"
+        const dateRaw = cells[3].replace(' 00:00:00', '').trim();
         rows.push({
+          vehicle: cells[0],
           date:    dateRaw,
           time:    cells[4],
           station: cells[5],

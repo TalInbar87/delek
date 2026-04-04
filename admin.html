@@ -93,6 +93,7 @@
         <table class="w-full text-xs" id="modalTable">
           <thead>
             <tr class="border-b border-white/10 text-gray-500">
+              <th class="pb-2 text-right font-semibold">מ. רכב</th>
               <th class="pb-2 text-right font-semibold">תאריך</th>
               <th class="pb-2 text-right font-semibold">שעה</th>
               <th class="pb-2 text-right font-semibold">תחנה</th>
@@ -393,9 +394,10 @@
         empty.classList.add('hidden');
         tbody.innerHTML = usages.map(u => `
           <tr class="border-t border-white/5">
+            <td class="py-2 text-gray-400 font-mono text-xs">${u.vehicle || '—'}</td>
             <td class="py-2 text-gray-300">${u.date}</td>
             <td class="py-2 text-gray-500">${u.time}</td>
-            <td class="py-2 text-gray-300" style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.station}</td>
+            <td class="py-2 text-gray-300" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.station}</td>
             <td class="py-2 text-white font-bold text-left">${u.liters.toFixed(2)}</td>
           </tr>`).join('');
       }
