@@ -119,7 +119,12 @@ class FuelGoodi {
     const idx = html3.indexOf('reportTabels');
     return {
       hasLiters:   html2.includes('\u05DC\u05D9\u05D8\u05E8\u05D9\u05DD \u05E9\u05E0\u05D5\u05EA\u05E8\u05D5'),
-      reportSnip:  idx >= 0 ? html3.substring(idx, idx + 3000) : 'reportTabels not found'
+      reportSnip:  (function() {
+        const rowIdx = html3.indexOf('rgRow');
+        if (rowIdx >= 0) return html3.substring(rowIdx, rowIdx + 2000);
+        const tIdx = html3.indexOf('reportTabels');
+        return tIdx >= 0 ? html3.substring(tIdx, tIdx + 3000) : 'not found';
+      })()
     };
   }
 
