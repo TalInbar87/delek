@@ -58,7 +58,8 @@ class FuelGoodi {
       const ev2  = this._extractInput('__EVENTVALIDATION', html2);
       const vsg2 = this._extractInput('__VIEWSTATEGENERATOR', html2);
       const today     = Utilities.formatDate(new Date(), 'Asia/Jerusalem', 'dd/MM/yyyy');
-      const monthAgo  = Utilities.formatDate(new Date(Date.now() - 30*24*60*60*1000), 'Asia/Jerusalem', 'dd/MM/yyyy');
+      const year      = new Date().getFullYear();
+      const marchFirst = '01/03/' + year;
 
       const html3 = UrlFetchApp.fetch(GOODI_URL, {
         method: 'post', muteHttpExceptions: true, followRedirects: true,
@@ -68,7 +69,7 @@ class FuelGoodi {
           '__EVENTTARGET': '', '__EVENTARGUMENT': '',
           '__VIEWSTATE': vs2, '__VIEWSTATEGENERATOR': vsg2, '__EVENTVALIDATION': ev2,
           'ddSearchSelect': '3', 'tbSearch': cn,
-          'dpStart$dateInput': monthAgo,
+          'dpStart$dateInput': marchFirst,
           'dpEnd$dateInput': today,
           'btnApplyRange': '\u05D4\u05E6\u05D2'  // הצג
         }
