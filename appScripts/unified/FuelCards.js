@@ -145,6 +145,20 @@ class FuelCardsManager {
     throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0 \u05d1\u05de\u05e2\u05e8\u05db\u05ea'); // לא נמצא במערכת
   }
 
+  // ── עדכון הערה (מנהל) ──
+  static updateNotes(cardNumber, notes) {
+    const sheet = this._getSheet();
+    const rows  = sheet.getDataRange().getValues();
+    const cn    = cardNumber.toString().trim();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString().trim() === cn) {
+        sheet.getRange(i + 1, 4).setValue(notes || '');
+        return true;
+      }
+    }
+    throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0');
+  }
+
   // ── מחיקת כרטיס (מנהל) ──
   static deleteCard(cardNumber) {
     const sheet = this._getSheet();

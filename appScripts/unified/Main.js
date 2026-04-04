@@ -96,6 +96,13 @@ function doPost(e) {
         return _json({ success: true, meta: refreshed });
       }
 
+      case 'updateNotes': {
+        if (!AdminAuth.verifyToken(data.token)) return _json({ error: 'אין הרשאה' });
+        if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
+        FuelCardsManager.updateNotes(data.cardNumber, data.notes || '');
+        return _json({ success: true });
+      }
+
       case 'deleteCard': {
         if (!AdminAuth.verifyToken(data.token)) return _json({ error: 'אין הרשאה' });
         FuelCardsManager.deleteCard(data.cardNumber);

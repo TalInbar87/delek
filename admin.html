@@ -186,13 +186,13 @@
           <table class="w-full text-sm" style="min-width:560px">
             <thead>
               <tr class="border-b border-white/5">
-                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">דוח תדלוקים</th>
+                <th class="px-3 py-3"></th>
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">מספר כרטיס</th>
-                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">שם כרטיס</th>
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">סוג</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">כמות בכרטיס</th>
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">נשאר</th>
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">הערה</th>
-                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">מחיקה</th>
+                <th class="px-3 py-3"></th>
               </tr>
             </thead>
             <tbody id="cardsBody"></tbody>
@@ -275,23 +275,32 @@
       empty.classList.add('hidden');
 
       tbody.innerHTML = cards.map(c => {
-        const badge     = fuelBadge(c.fuelType);
-        const litColor  = c.liters <= 10 ? 'color:#f87171;font-weight:700' : c.liters <= 30 ? 'color:#fbbf24;font-weight:700' : 'color:#e5e7eb';
-        const updatedAt = c.lastUpdated ? new Date(c.lastUpdated).toLocaleDateString('he-IL') : '—';
+        const badge      = fuelBadge(c.fuelType);
+        const litColor   = c.liters <= 10 ? 'color:#f87171;font-weight:700' : c.liters <= 30 ? 'color:#fbbf24;font-weight:700' : 'color:#e5e7eb';
+        const updatedAt  = c.lastUpdated ? new Date(c.lastUpdated).toLocaleDateString('he-IL') : '—';
+        const totalLit   = (c.cardName || '').match(/(\d+)/);
+        const totalLabel = totalLit ? totalLit[1] + ' ל׳' : '—';
+        const noteVal    = (c.notes || '').replace(/'/g, '&#39;');
         return `
           <tr class="border-t border-white/5 hover:bg-white/[0.02] transition-colors">
-            <td class="px-3 py-3">
+            <td class="px-2 py-3">
               <button id="import-${c.cardNumber}" onclick="refreshCard('${c.cardNumber}')"
-                class="btn-import">📊 דוח תדלוקים</button>
+                class="btn-import" title="דוח תדלוקים">📊</button>
             </td>
             <td class="px-3 py-3 text-white font-bold text-sm">${c.cardNumber}</td>
-            <td class="px-3 py-3 text-gray-300 text-xs">${c.cardName || '—'}</td>
             <td class="px-3 py-3">${badge}</td>
+            <td class="px-3 py-3 text-gray-400 text-sm">${totalLabel}</td>
             <td class="px-3 py-3 text-sm" style="${litColor}">${c.liters.toLocaleString('he-IL')} ל׳
               <span class="text-gray-700 text-xs mr-1">(${updatedAt})</span>
             </td>
-            <td class="px-3 py-3 text-gray-500 text-xs">${c.notes || '—'}</td>
-            <td class="px-3 py-3">
+            <td class="px-3 py-3" id="note-cell-${c.cardNumber}">
+              <div class="flex items-center gap-1.5">
+                <span id="note-text-${c.cardNumber}" class="text-gray-500 text-xs">${c.notes || '—'}</span>
+                <button onclick="editNote('${c.cardNumber}','${noteVal}')"
+                  class="text-gray-700 hover:text-gray-400 text-xs transition-colors" title="ערוך הערה">✏️</button>
+              </div>
+            </td>
+            <td class="px-2 py-3">
               <button onclick="deleteCard('${c.cardNumber}')"
                 class="text-red-500 hover:text-red-300 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10">
                 מחק
@@ -409,6 +418,34 @@
     function closeModal(e) {
       if (e.target === document.getElementById('usageModal'))
         document.getElementById('usageModal').classList.add('hidden');
+    }
+
+    // ── Edit Note inline ──
+    function editNote(cn, current) {
+      const cell = document.getElementById('note-cell-' + cn);
+      cell.innerHTML = `
+        <div class="flex items-center gap-1.5">
+          <input id="note-input-${cn}" type="text" value="${current === '—' ? '' : current}"
+            class="input-field text-xs py-1 px-2" style="font-size:12px;padding:5px 8px;border-radius:8px;width:120px"
+            onkeydown="if(event.key==='Enter')saveNote('${cn}');if(event.key==='Escape')loadCards()" />
+          <button onclick="saveNote('${cn}')"
+            class="text-green-400 hover:text-green-300 text-xs font-bold transition-colors">✓</button>
+          <button onclick="loadCards()"
+            class="text-gray-600 hover:text-gray-400 text-xs transition-colors">✕</button>
+        </div>`;
+      document.getElementById('note-input-' + cn).focus();
+    }
+
+    async function saveNote(cn) {
+      const input = document.getElementById('note-input-' + cn);
+      if (!input) return;
+      const notes = input.value.trim();
+      try {
+        const res = await api({ action: 'updateNotes', token: TOKEN, cardNumber: cn, notes });
+        if (res.error) { alert(res.error); return; }
+        document.getElementById('note-text-' + cn).textContent = notes || '—';
+        loadCards();
+      } catch { alert('שגיאת תקשורת'); }
     }
 
     // ── Delete ──
