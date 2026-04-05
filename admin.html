@@ -48,8 +48,8 @@
     .badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
 
     /* swipe */
-    .swipe-row { transition: transform 0.2s, opacity 0.2s; touch-action: pan-y; }
-    .swipe-row.swiping { transition: none; }
+    .swipe-row { transition: transform 0.25s ease, opacity 0.25s ease; touch-action: pan-y; }
+    .swipe-row.swiping { transition: none !important; }
 
     /* toast */
     #toast {
@@ -396,9 +396,9 @@
           <td class="py-1.5 text-gray-400 text-xs" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.station}</td>
           <td class="py-1.5 text-white text-xs font-bold text-left">${t.liters.toFixed(2)}</td>
         </tr>`).join('');
-      const txSection  = txs.length ? `
+      const txSection  = `
         <tr id="arch-tx-${c.cardNumber}" class="hidden">
-          <td colspan="6" style="padding:0 12px 12px">
+          <td colspan="7" style="padding:0 12px 12px">
             <table class="w-full text-xs">
               <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.07)">
                 <th class="pb-1 text-right text-gray-600 font-semibold">רכב</th>
@@ -406,15 +406,15 @@
                 <th class="pb-1 text-right text-gray-600 font-semibold">שעה</th>
                 <th class="pb-1 text-right text-gray-600 font-semibold">תחנה</th>
                 <th class="pb-1 text-left text-gray-600 font-semibold">ל׳</th>
-              </thead><tbody>${txRows}</tbody>
+              </thead><tbody id="arch-tx-body-${c.cardNumber}">${txRows || '<tr><td colspan="5" class="py-3 text-center text-gray-600 text-xs">טוען...</td></tr>'}</tbody>
             </table>
           </td>
-        </tr>` : '';
+        </tr>`;
       return `
         <tr id="arch-row-${c.cardNumber}" class="border-t border-white/5 cursor-pointer hover:bg-white/[0.02]"
-          onclick="toggleArchiveTx('${c.cardNumber}',${txs.length > 0})">
+          onclick="toggleArchiveTx('${c.cardNumber}')">
           <td class="px-3 py-3 text-gray-400 font-bold text-sm">
-            ${txs.length ? `<span id="arch-expand-${c.cardNumber}" style="color:#374151;font-size:10px;margin-left:4px">▶</span>` : ''}
+            <span id="arch-expand-${c.cardNumber}" style="color:#374151;font-size:10px;margin-left:4px">▶</span>
             ${c.cardNumber}
           </td>
           <td class="px-3 py-3">${badge}</td>
@@ -432,21 +432,23 @@
         ${txSection}`;
     }
 
-    function toggleArchiveTx(cn, hasTx) {
-      if (!hasTx) return;
+    function toggleArchiveTx(cn) {
       const row = document.getElementById('arch-tx-' + cn);
       const ico = document.getElementById('arch-expand-' + cn);
       if (!row) return;
-      const open = row.classList.toggle('hidden');
-      if (ico) ico.textContent = open ? '▶' : '▼';
-      // lazy load מהגיליון אם עדיין ריק
-      if (!open && !row.dataset.loaded) {
+      const nowHidden = row.classList.toggle('hidden');
+      if (ico) ico.textContent = nowHidden ? '▶' : '▼';
+      // lazy load מהגיליון בפתיחה ראשונה
+      if (!nowHidden && !row.dataset.loaded) {
         row.dataset.loaded = '1';
+        const tbody = document.getElementById('arch-tx-body-' + cn);
         api({ action: 'getArchiveHistory', token: TOKEN, cardNumber: cn })
           .then(res => {
-            if (!res.transactions || !res.transactions.length) return;
-            const tbody = row.querySelector('tbody');
             if (!tbody) return;
+            if (!res.transactions || !res.transactions.length) {
+              tbody.innerHTML = '<tr><td colspan="5" class="py-3 text-center text-gray-600 text-xs">אין היסטוריית תדלוקים</td></tr>';
+              return;
+            }
             tbody.innerHTML = res.transactions.map(t => `
               <tr style="border-top:1px solid rgba(255,255,255,0.04)">
                 <td class="py-1.5 text-gray-500 text-xs">${t.vehicle || '—'}</td>
@@ -455,7 +457,9 @@
                 <td class="py-1.5 text-gray-400 text-xs" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.station}</td>
                 <td class="py-1.5 text-white text-xs font-bold text-left">${(+t.liters).toFixed(2)}</td>
               </tr>`).join('');
-          }).catch(() => {});
+          }).catch(() => {
+            if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-3 text-center text-red-500 text-xs">שגיאה בטעינת הנתונים</td></tr>';
+          });
       }
     }
 
@@ -665,35 +669,9 @@
             litEl.textContent = (+m.liters).toLocaleString('he-IL') + ' ל׳';
           }
           if (useEl && m.lastUsage) useEl.textContent = m.lastUsage;
-          // עדכן accordion עם transactions
+          // עדכן accordion עם transactions (השורה תמיד קיימת)
           if (m.recentUsages && m.recentUsages.length) {
-            let txRow = document.getElementById('arch-tx-' + cn);
-            if (!txRow) {
-              // הוסף accordion row אחרי שורת הכרטיס
-              const archRow = document.getElementById('arch-row-' + cn);
-              if (archRow) {
-                const newTr = document.createElement('tr');
-                newTr.id = 'arch-tx-' + cn;
-                newTr.className = 'hidden';
-                newTr.innerHTML = `<td colspan="6" style="padding:0 12px 12px">
-                  <table class="w-full text-xs"><thead><tr style="border-bottom:1px solid rgba(255,255,255,0.07)">
-                    <th class="pb-1 text-right text-gray-600 font-semibold">רכב</th>
-                    <th class="pb-1 text-right text-gray-600 font-semibold">תאריך</th>
-                    <th class="pb-1 text-right text-gray-600 font-semibold">שעה</th>
-                    <th class="pb-1 text-right text-gray-600 font-semibold">תחנה</th>
-                    <th class="pb-1 text-left text-gray-600 font-semibold">ל׳</th>
-                  </thead><tbody id="arch-tx-body-${cn}"></tbody></table></td>`;
-                archRow.after(newTr);
-                txRow = newTr;
-                // הוסף expand icon
-                const ico = document.getElementById('arch-expand-' + cn);
-                if (!ico) {
-                  const td = archRow.querySelector('td:first-child');
-                  if (td) td.insertAdjacentHTML('afterbegin', `<span id="arch-expand-${cn}" style="color:#374151;font-size:10px;margin-left:4px">▶</span>`);
-                }
-              }
-            }
-            const tbody = document.getElementById('arch-tx-body-' + cn) || txRow && txRow.querySelector('tbody');
+            const tbody = document.getElementById('arch-tx-body-' + cn);
             if (tbody) {
               tbody.innerHTML = m.recentUsages.map(t => `
                 <tr style="border-top:1px solid rgba(255,255,255,0.04)">
@@ -703,6 +681,9 @@
                   <td class="py-1.5 text-gray-400 text-xs" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.station}</td>
                   <td class="py-1.5 text-white text-xs font-bold text-left">${(+t.liters).toFixed(2)}</td>
                 </tr>`).join('');
+              // סמן כנטען כדי שהlazy-load לא ידרוס
+              const txRow = document.getElementById('arch-tx-' + cn);
+              if (txRow) txRow.dataset.loaded = '1';
             }
           }
         })
@@ -719,25 +700,101 @@
       api({ action: 'unarchiveCard', token: TOKEN, cardNumber: cn }).catch(() => {});
     }
 
-    // ── Swipe to archive (mobile) ──
+    // ── Swipe to archive — WhatsApp style ──
     function initSwipe(row, cn) {
-      let startX = 0, dx = 0, swiping = false;
-      row.addEventListener('touchstart', e => { startX = e.touches[0].clientX; swiping = true; row.classList.add('swiping'); }, { passive: true });
-      row.addEventListener('touchmove', e => {
-        if (!swiping) return;
-        dx = e.touches[0].clientX - startX;
-        if (dx < 0) row.style.transform = 'translateX(' + Math.max(dx, -120) + 'px)';
+      row.classList.add('swipe-row');
+      let startX = 0, startY = 0, dx = 0, swiping = false, canceled = false;
+      let hint = null;
+
+      function createHint() {
+        if (hint) return;
+        hint = document.createElement('div');
+        hint.style.cssText = [
+          'position:fixed', 'z-index:200', 'right:0',
+          'display:flex', 'align-items:center', 'justify-content:center', 'gap:6px',
+          'color:#fff', 'font-weight:800', 'font-size:13px',
+          'pointer-events:none', 'opacity:0',
+          'border-radius:6px 0 0 6px',
+          'background:#d97706',
+          'transition:background 0.1s'
+        ].join(';');
+        hint.innerHTML = '<span style="font-size:17px">🗄</span><span>ארכיון</span>';
+        document.body.appendChild(hint);
+      }
+
+      function removeHint() {
+        if (hint) { hint.remove(); hint = null; }
+      }
+
+      function updateHint(pull) {
+        if (!hint) return;
+        const rect = row.getBoundingClientRect();
+        hint.style.top    = rect.top + 'px';
+        hint.style.height = rect.height + 'px';
+        hint.style.width  = Math.min(pull, 140) + 'px';
+        hint.style.opacity = Math.min(pull / 55, 1).toString();
+        hint.style.background = pull > 80 ? '#92400e' : '#d97706';
+      }
+
+      row.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        dx = 0; swiping = false; canceled = false;
+        createHint();
       }, { passive: true });
-      row.addEventListener('touchend', () => {
-        row.classList.remove('swiping');
-        if (dx < -80) {
-          row.style.transform = 'translateX(-100%)'; row.style.opacity = '0';
-          setTimeout(() => archiveCardUI(cn), 200);
-        } else {
-          row.style.transform = ''; row.style.opacity = '';
+
+      row.addEventListener('touchmove', e => {
+        if (canceled) return;
+        dx = e.touches[0].clientX - startX;
+        const dy = e.touches[0].clientY - startY;
+        if (!swiping) {
+          if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+          if (Math.abs(dy) > Math.abs(dx)) { canceled = true; removeHint(); return; }
+          swiping = true;
         }
-        dx = 0; swiping = false;
-      });
+        if (dx >= 0) { row.style.transform = ''; return; }
+        const pull = -dx;
+        row.classList.add('swiping');
+        row.style.transform = 'translateX(-' + Math.min(pull, 140) + 'px)';
+        // Tint the row background as feedback
+        row.style.background = pull > 80
+          ? 'rgba(146,64,14,0.18)'
+          : 'rgba(217,119,6,0.08)';
+        updateHint(pull);
+      }, { passive: true });
+
+      function endSwipe() {
+        row.classList.remove('swiping');
+        if (!swiping || canceled) { removeHint(); row.style.background = ''; return; }
+        if (dx < -80) {
+          // Archive: fly off screen
+          row.style.transition = 'transform 0.22s ease-in, opacity 0.22s ease-in';
+          row.style.transform  = 'translateX(-110%)';
+          row.style.opacity    = '0';
+          row.style.background = '';
+          removeHint();
+          setTimeout(() => archiveCardUI(cn), 240);
+        } else {
+          // Snap back
+          row.style.transition = 'transform 0.3s ease, background 0.3s ease';
+          row.style.transform  = '';
+          row.style.background = '';
+          setTimeout(() => { row.style.transition = ''; }, 320);
+          removeHint();
+        }
+        dx = 0; swiping = false; canceled = false;
+      }
+
+      row.addEventListener('touchend',   endSwipe, { passive: true });
+      row.addEventListener('touchcancel', () => {
+        row.classList.remove('swiping');
+        row.style.transform  = '';
+        row.style.opacity    = '';
+        row.style.background = '';
+        row.style.transition = '';
+        removeHint();
+        dx = 0; swiping = false; canceled = false;
+      }, { passive: true });
     }
 
     // ── Helpers ──
