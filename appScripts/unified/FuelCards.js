@@ -21,15 +21,16 @@ class FuelCardsManager {
     if (!sheet) {
       sheet = ss.insertSheet(CONFIG.FUEL.SHEET_NAME);
       sheet.appendRow([
-        '\u05de\u05e1\u05e4\u05e8 \u05db\u05e8\u05d8\u05d9\u05e1',   // מספר כרטיס
-        '\u05e1\u05d5\u05d2 \u05d3\u05dc\u05e7',                       // סוג דלק
-        '\u05dc\u05d9\u05d8\u05e8\u05d9\u05dd \u05e9\u05e0\u05d5\u05ea\u05e8\u05d5', // ליטרים שנותרו
-        '\u05d4\u05e2\u05e8\u05d5\u05ea',                               // הערות
-        '\u05ea\u05d0\u05e8\u05d9\u05da \u05d4\u05d5\u05e1\u05e4\u05d4', // תאריך הוספה
-        '\u05e9\u05dd \u05db\u05e8\u05d8\u05d9\u05e1',                  // שם כרטיס
-        '\u05e2\u05d3\u05db\u05d5\u05df \u05d0\u05d7\u05e8\u05d5\u05df \u05de\u05d2\u05d5\u05d3\u05d9' // עדכון אחרון מגודי
+        '\u05de\u05e1\u05e4\u05e8 \u05db\u05e8\u05d8\u05d9\u05e1',
+        '\u05e1\u05d5\u05d2 \u05d3\u05dc\u05e7',
+        '\u05dc\u05d9\u05d8\u05e8\u05d9\u05dd \u05e9\u05e0\u05d5\u05ea\u05e8\u05d5',
+        '\u05d4\u05e2\u05e8\u05d5\u05ea',
+        '\u05ea\u05d0\u05e8\u05d9\u05da \u05d4\u05d5\u05e1\u05e4\u05d4',
+        '\u05e9\u05dd \u05db\u05e8\u05d8\u05d9\u05e1',
+        '\u05e2\u05d3\u05db\u05d5\u05df \u05d0\u05d7\u05e8\u05d5\u05df',
+        '\u05d0\u05e8\u05db\u05d9\u05d1'  // ארכיב
       ]);
-      const hr = sheet.getRange(1, 1, 1, 7);
+      const hr = sheet.getRange(1, 1, 1, 8);
       hr.setBackground(CONFIG.FUEL.HEADER_COLOR);
       hr.setFontColor('#FFFFFF');
       hr.setFontWeight('bold');
@@ -73,7 +74,8 @@ class FuelCardsManager {
         notes:       rows[i][3] || '',
         dateAdded:   rows[i][4] || '',
         cardName:    rows[i][5] || '',
-        lastUpdated: rows[i][6] || ''
+        lastUpdated: rows[i][6] || '',
+        isArchived:  rows[i][7] === true || rows[i][7] === 'TRUE'
       });
     }
     return cards;
@@ -143,6 +145,37 @@ class FuelCardsManager {
       }
     }
     throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0 \u05d1\u05de\u05e2\u05e8\u05db\u05ea'); // לא נמצא במערכת
+  }
+
+  // ── ארכיב כרטיס + רענון מגודי (מנהל) ──
+  static archiveCard(cardNumber) {
+    const sheet = this._getSheet();
+    const rows  = sheet.getDataRange().getValues();
+    const cn    = cardNumber.toString().trim();
+
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString().trim() !== cn) continue;
+      const row = i + 1;
+      sheet.getRange(row, 8).setValue(true); // סמן כארכיב
+
+      // עדכן מגודי
+      try {
+        const goodi = FuelGoodi.lookup(cn);
+        if (goodi) {
+          sheet.getRange(row, 2).setValue(goodi.fuelType   || '');
+          sheet.getRange(row, 3).setValue(goodi.litersLeft || 0);
+          sheet.getRange(row, 6).setValue(goodi.cardName   || '');
+          sheet.getRange(row, 7).setValue(new Date().toISOString());
+          return {
+            cardName: goodi.cardName, fuelType: goodi.fuelType,
+            liters: goodi.litersLeft, litersUsed: goodi.litersUsed,
+            amountUsed: goodi.amountUsed, lastUsage: goodi.lastUsage
+          };
+        }
+      } catch (_) {}
+      return {};
+    }
+    throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0');
   }
 
   // ── עדכון הערה (מנהל) ──

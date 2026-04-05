@@ -171,10 +171,15 @@
 
       <!-- Cards Table -->
       <div class="card overflow-hidden fade-in">
-        <div class="px-4 sm:px-5 py-4 border-b border-white/5 flex items-center justify-between">
-          <h2 class="text-white font-bold text-sm">כל הכרטיסים</h2>
-          <button onclick="loadCards()" id="refreshBtn"
-            class="text-gray-500 hover:text-white text-sm transition-colors">רענן ↻</button>
+        <!-- Tab bar -->
+        <div class="border-b border-white/5 flex items-center justify-between px-4 sm:px-5">
+          <div class="flex">
+            <button id="tabActive"   onclick="switchCardsTab('active')"
+              class="py-4 px-3 text-xs font-bold border-b-2 border-blue-500 text-blue-400 transition-colors">כרטיסים פעילים</button>
+            <button id="tabArchived" onclick="switchCardsTab('archived')"
+              class="py-4 px-3 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors">ארכיון</button>
+          </div>
+          <button onclick="loadCards()" class="text-gray-500 hover:text-white text-sm transition-colors">רענן ↻</button>
         </div>
 
         <div id="tableLoading" class="py-12 text-center text-gray-600">
@@ -182,7 +187,8 @@
           <p class="text-sm">טוען נתונים...</p>
         </div>
 
-        <div id="tableWrap" class="hidden overflow-x-auto">
+        <!-- Active tab -->
+        <div id="panelActive" class="overflow-x-auto">
           <table class="w-full text-sm" style="min-width:560px">
             <thead>
               <tr class="border-b border-white/5">
@@ -197,9 +203,28 @@
             </thead>
             <tbody id="cardsBody"></tbody>
           </table>
-          <div id="emptyState" class="hidden py-12 text-center text-gray-600">
-            <p class="text-4xl mb-2">📋</p>
-            <p class="text-sm">אין כרטיסים במערכת עדיין</p>
+          <div id="emptyActive" class="hidden py-12 text-center text-gray-600">
+            <p class="text-4xl mb-2">📋</p><p class="text-sm">אין כרטיסים פעילים</p>
+          </div>
+        </div>
+
+        <!-- Archive tab -->
+        <div id="panelArchived" class="hidden overflow-x-auto">
+          <table class="w-full text-sm" style="min-width:480px">
+            <thead>
+              <tr class="border-b border-white/5">
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">מספר כרטיס</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">סוג</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">כמות בכרטיס</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">נשאר בארכיב</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">הערה</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">שימוש אחרון</th>
+              </tr>
+            </thead>
+            <tbody id="archivedBody"></tbody>
+          </table>
+          <div id="emptyArchived" class="hidden py-12 text-center text-gray-600">
+            <p class="text-4xl mb-2">🗂</p><p class="text-sm">הארכיון ריק</p>
           </div>
         </div>
       </div>
@@ -209,7 +234,9 @@
 
   <script src="config.js"></script>
   <script>
-    let TOKEN = localStorage.getItem('delek_token');
+    let TOKEN    = localStorage.getItem('delek_token');
+    let allCards = [];   // כל הכרטיסים — משמש לאופטימיסטיק
+    let activeTab = 'active';
     if (TOKEN) showPanel();
 
     // ── Login ──
@@ -250,70 +277,104 @@
       document.getElementById('passwordInput').value = '';
     }
 
+    // ── Tabs ──
+    function switchCardsTab(tab) {
+      activeTab = tab;
+      document.getElementById('tabActive').className   = 'py-4 px-3 text-xs font-bold border-b-2 transition-colors ' +
+        (tab === 'active'   ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-300');
+      document.getElementById('tabArchived').className = 'py-4 px-3 text-xs font-bold border-b-2 transition-colors ' +
+        (tab === 'archived' ? 'border-blue-500 text-blue-400' : 'border-transparent text-gray-500 hover:text-gray-300');
+      document.getElementById('panelActive').classList.toggle('hidden',   tab !== 'active');
+      document.getElementById('panelArchived').classList.toggle('hidden', tab !== 'archived');
+    }
+
     // ── Load Cards ──
     async function loadCards() {
       document.getElementById('tableLoading').classList.remove('hidden');
-      document.getElementById('tableWrap').classList.add('hidden');
+      document.getElementById('panelActive').classList.add('hidden');
+      document.getElementById('panelArchived').classList.add('hidden');
       try {
         const res = await api({ action: 'getCards', token: TOKEN });
         if (res.error === 'אין הרשאה') { logout(); return; }
-        renderTable(res.cards || []);
-        updateStats(res.cards || []);
+        allCards = res.cards || [];
+        renderTables();
+        updateStats(allCards);
       } catch {
         document.getElementById('tableLoading').innerHTML =
           '<p class="text-red-400 py-8 text-sm">שגיאה בטעינת הנתונים</p>';
       }
     }
 
-    function renderTable(cards) {
-      const tbody = document.getElementById('cardsBody');
-      const empty = document.getElementById('emptyState');
+    function renderTables() {
       document.getElementById('tableLoading').classList.add('hidden');
-      document.getElementById('tableWrap').classList.remove('hidden');
+      switchCardsTab(activeTab);
 
-      if (!cards.length) { tbody.innerHTML = ''; empty.classList.remove('hidden'); return; }
-      empty.classList.add('hidden');
+      const active   = allCards.filter(c => !c.isArchived);
+      const archived = allCards.filter(c =>  c.isArchived);
 
-      tbody.innerHTML = cards.map(c => {
-        const badge      = fuelBadge(c.fuelType);
-        const litColor   = c.liters <= 10 ? 'color:#f87171;font-weight:700' : c.liters <= 30 ? 'color:#fbbf24;font-weight:700' : 'color:#e5e7eb';
-        const updatedAt  = c.lastUpdated ? new Date(c.lastUpdated).toLocaleDateString('he-IL') : '—';
-        const totalLit   = (c.cardName || '').match(/(\d+)/);
-        const totalLabel = totalLit ? totalLit[1] + ' ל׳' : '—';
-        const noteVal    = (c.notes || '').replace(/'/g, '&#39;');
-        return `
-          <tr class="border-t border-white/5 hover:bg-white/[0.02] transition-colors">
-            <td class="px-2 py-3">
-              <button id="import-${c.cardNumber}" onclick="refreshCard('${c.cardNumber}')"
-                class="btn-import" title="דוח תדלוקים">📊</button>
-            </td>
-            <td class="px-3 py-3 text-white font-bold text-sm">${c.cardNumber}</td>
-            <td class="px-3 py-3">${badge}</td>
-            <td class="px-3 py-3 text-gray-400 text-sm">${totalLabel}</td>
-            <td class="px-3 py-3 text-sm" style="${litColor}">${c.liters.toLocaleString('he-IL')} ל׳
-              <span class="text-gray-700 text-xs mr-1">(${updatedAt})</span>
-            </td>
-            <td class="px-3 py-3" id="note-cell-${c.cardNumber}">
-              <div class="flex items-center gap-1.5">
-                <span id="note-text-${c.cardNumber}" class="text-gray-500 text-xs">${c.notes || '—'}</span>
-                <button onclick="editNote('${c.cardNumber}','${noteVal}')"
-                  class="text-gray-700 hover:text-gray-400 text-xs transition-colors" title="ערוך הערה">✏️</button>
-              </div>
-            </td>
-            <td class="px-2 py-3">
-              <button onclick="deleteCard('${c.cardNumber}')"
-                class="text-red-500 hover:text-red-300 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-red-500/10">
-                מחק
-              </button>
-            </td>
-          </tr>`;
-      }).join('');
+      document.getElementById('emptyActive').classList.toggle('hidden', active.length > 0);
+      document.getElementById('cardsBody').innerHTML = active.map(c => cardRow(c)).join('');
+
+      document.getElementById('emptyArchived').classList.toggle('hidden', archived.length > 0);
+      document.getElementById('archivedBody').innerHTML = archived.map(c => archivedRow(c)).join('');
+    }
+
+    function cardRow(c) {
+      const badge      = fuelBadge(c.fuelType);
+      const litColor   = c.liters <= 10 ? 'color:#f87171;font-weight:700' : c.liters <= 30 ? 'color:#fbbf24;font-weight:700' : 'color:#e5e7eb';
+      const updatedAt  = c.lastUpdated ? new Date(c.lastUpdated).toLocaleDateString('he-IL') : '—';
+      const totalLit   = (c.cardName || '').match(/(\d+)/);
+      const totalLabel = totalLit ? totalLit[1] + ' ל׳' : '—';
+      const noteVal    = (c.notes || '').replace(/'/g, '&#39;');
+      return `
+        <tr id="row-${c.cardNumber}" class="border-t border-white/5 hover:bg-white/[0.02] transition-colors">
+          <td class="px-2 py-3">
+            <button id="import-${c.cardNumber}" onclick="refreshCard('${c.cardNumber}')"
+              class="btn-import" title="דוח תדלוקים">📊</button>
+          </td>
+          <td class="px-3 py-3 text-white font-bold text-sm">${c.cardNumber}</td>
+          <td class="px-3 py-3">${badge}</td>
+          <td class="px-3 py-3 text-gray-400 text-sm">${totalLabel}</td>
+          <td class="px-3 py-3 text-sm" style="${litColor}">${c.liters.toLocaleString('he-IL')} ל׳
+            <span class="text-gray-700 text-xs mr-1">(${updatedAt})</span>
+          </td>
+          <td class="px-3 py-3" id="note-cell-${c.cardNumber}">
+            <div class="flex items-center gap-1.5">
+              <span id="note-text-${c.cardNumber}" class="text-gray-500 text-xs">${c.notes || '—'}</span>
+              <button onclick="editNote('${c.cardNumber}','${noteVal}')"
+                class="text-gray-700 hover:text-gray-400 text-xs transition-colors" title="ערוך הערה">✏️</button>
+            </div>
+          </td>
+          <td class="px-2 py-3">
+            <button onclick="archiveCardUI('${c.cardNumber}')"
+              class="text-amber-600 hover:text-amber-400 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-amber-500/10">
+              ארכיון
+            </button>
+          </td>
+        </tr>`;
+    }
+
+    function archivedRow(c) {
+      const badge      = fuelBadge(c.fuelType);
+      const totalLit   = (c.cardName || '').match(/(\d+)/);
+      const totalLabel = totalLit ? totalLit[1] + ' ל׳' : '—';
+      const litColor   = c.liters <= 10 ? 'color:#f87171' : c.liters <= 30 ? 'color:#fbbf24' : 'color:#9ca3af';
+      return `
+        <tr id="arch-row-${c.cardNumber}" class="border-t border-white/5 opacity-70">
+          <td class="px-3 py-3 text-gray-400 font-bold text-sm">${c.cardNumber}</td>
+          <td class="px-3 py-3">${badge}</td>
+          <td class="px-3 py-3 text-gray-500 text-sm">${totalLabel}</td>
+          <td class="px-3 py-3 text-sm" id="arch-liters-${c.cardNumber}" style="${litColor}">${c.liters.toLocaleString('he-IL')} ל׳</td>
+          <td class="px-3 py-3 text-gray-600 text-xs">${c.notes || '—'}</td>
+          <td class="px-3 py-3 text-gray-600 text-xs" id="arch-usage-${c.cardNumber}">${c.lastUsage || '—'}</td>
+        </tr>`;
     }
 
     function updateStats(cards) {
-      document.getElementById('statTotal').textContent  = cards.length;
-      document.getElementById('statBenzin').textContent = cards.filter(c => c.fuelType === 'בנזין').length;
-      document.getElementById('statSoler').textContent  = cards.filter(c => c.fuelType === 'סולר').length;
+      const active = cards.filter(c => !c.isArchived);
+      document.getElementById('statTotal').textContent  = active.length;
+      document.getElementById('statBenzin').textContent = active.filter(c => c.fuelType === 'בנזין').length;
+      document.getElementById('statSoler').textContent  = active.filter(c => c.fuelType === 'סולר').length;
     }
 
     // ── Add Card ──
@@ -468,14 +529,35 @@
         .catch(() => alert('שגיאת תקשורת'));
     }
 
-    // ── Delete ──
-    async function deleteCard(cn) {
-      if (!confirm('למחוק את כרטיס ' + cn + '?')) return;
-      try {
-        const res = await api({ action: 'deleteCard', token: TOKEN, cardNumber: cn });
-        if (res.error) { alert(res.error); return; }
-        loadCards();
-      } catch { alert('שגיאת תקשורת'); }
+    // ── Archive (optimistic) ──
+    function archiveCardUI(cn) {
+      // עדכן allCards מיד
+      const card = allCards.find(c => c.cardNumber === cn);
+      if (!card) return;
+      card.isArchived = true;
+      renderTables();
+      switchCardsTab('archived'); // עבור לטאב ארכיון
+
+      // שלח ל-API ברקע — עדכן שורת הארכיון כשמגיע מגודי
+      api({ action: 'archiveCard', token: TOKEN, cardNumber: cn })
+        .then(res => {
+          if (res.error) return;
+          const m = res.meta || {};
+          // עדכן את שורת הארכיון עם נתוני גודי טריים
+          if (m.liters !== undefined) {
+            const litEl = document.getElementById('arch-liters-' + cn);
+            if (litEl) litEl.textContent = (+m.liters).toLocaleString('he-IL') + ' ל׳';
+          }
+          if (m.lastUsage) {
+            const useEl = document.getElementById('arch-usage-' + cn);
+            if (useEl) useEl.textContent = m.lastUsage;
+          }
+          // עדכן allCards לסנכרון
+          if (m.fuelType)  card.fuelType  = m.fuelType;
+          if (m.liters !== undefined) card.liters = m.liters;
+          if (m.lastUsage) card.lastUsage = m.lastUsage;
+        })
+        .catch(() => {});
     }
 
     // ── Helpers ──
