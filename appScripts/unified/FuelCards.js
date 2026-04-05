@@ -147,33 +147,28 @@ class FuelCardsManager {
     throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0 \u05d1\u05de\u05e2\u05e8\u05db\u05ea'); // לא נמצא במערכת
   }
 
-  // ── ארכיב כרטיס + רענון מגודי (מנהל) ──
+  // ── ארכיב כרטיס — סימון בלבד (מהיר) ──
   static archiveCard(cardNumber) {
     const sheet = this._getSheet();
     const rows  = sheet.getDataRange().getValues();
     const cn    = cardNumber.toString().trim();
-
     for (let i = 1; i < rows.length; i++) {
       if (rows[i][0].toString().trim() !== cn) continue;
-      const row = i + 1;
-      sheet.getRange(row, 8).setValue(true); // סמן כארכיב
+      sheet.getRange(i + 1, 8).setValue(true);
+      return true;
+    }
+    throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0');
+  }
 
-      // עדכן מגודי
-      try {
-        const goodi = FuelGoodi.lookup(cn);
-        if (goodi) {
-          sheet.getRange(row, 2).setValue(goodi.fuelType   || '');
-          sheet.getRange(row, 3).setValue(goodi.litersLeft || 0);
-          sheet.getRange(row, 6).setValue(goodi.cardName   || '');
-          sheet.getRange(row, 7).setValue(new Date().toISOString());
-          return {
-            cardName: goodi.cardName, fuelType: goodi.fuelType,
-            liters: goodi.litersLeft, litersUsed: goodi.litersUsed,
-            amountUsed: goodi.amountUsed, lastUsage: goodi.lastUsage
-          };
-        }
-      } catch (_) {}
-      return {};
+  // ── שחזור מארכיב ──
+  static unarchiveCard(cardNumber) {
+    const sheet = this._getSheet();
+    const rows  = sheet.getDataRange().getValues();
+    const cn    = cardNumber.toString().trim();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString().trim() !== cn) continue;
+      sheet.getRange(i + 1, 8).setValue(false);
+      return true;
     }
     throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0');
   }

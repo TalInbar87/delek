@@ -216,9 +216,10 @@
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">מספר כרטיס</th>
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">סוג</th>
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">כמות בכרטיס</th>
-                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">נשאר בארכיב</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">נשאר בכרטיס</th>
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">הערה</th>
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">שימוש אחרון</th>
+                <th class="px-3 py-3"></th>
               </tr>
             </thead>
             <tbody id="archivedBody"></tbody>
@@ -359,14 +360,21 @@
       const totalLit   = (c.cardName || '').match(/(\d+)/);
       const totalLabel = totalLit ? totalLit[1] + ' ל׳' : '—';
       const litColor   = c.liters <= 10 ? 'color:#f87171' : c.liters <= 30 ? 'color:#fbbf24' : 'color:#9ca3af';
+      const litLabel   = c.liters > 0 ? c.liters.toLocaleString('he-IL') + ' ל׳' : '<span class="text-gray-700 text-xs">טוען...</span>';
       return `
         <tr id="arch-row-${c.cardNumber}" class="border-t border-white/5 opacity-70">
           <td class="px-3 py-3 text-gray-400 font-bold text-sm">${c.cardNumber}</td>
           <td class="px-3 py-3">${badge}</td>
           <td class="px-3 py-3 text-gray-500 text-sm">${totalLabel}</td>
-          <td class="px-3 py-3 text-sm" id="arch-liters-${c.cardNumber}" style="${litColor}">${c.liters.toLocaleString('he-IL')} ל׳</td>
+          <td class="px-3 py-3 text-sm" id="arch-liters-${c.cardNumber}" style="${litColor}">${litLabel}</td>
           <td class="px-3 py-3 text-gray-600 text-xs">${c.notes || '—'}</td>
-          <td class="px-3 py-3 text-gray-600 text-xs" id="arch-usage-${c.cardNumber}">${c.lastUsage || '—'}</td>
+          <td class="px-3 py-3 text-gray-600 text-xs" id="arch-usage-${c.cardNumber}">${c.lastUsage || '<span class="text-gray-700 text-xs">טוען...</span>'}</td>
+          <td class="px-2 py-3">
+            <button onclick="unarchiveCardUI('${c.cardNumber}')"
+              class="text-blue-600 hover:text-blue-400 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-blue-500/10 whitespace-nowrap">
+              ↩ החזר
+            </button>
+          </td>
         </tr>`;
     }
 
@@ -531,33 +539,42 @@
 
     // ── Archive (optimistic) ──
     function archiveCardUI(cn) {
-      // עדכן allCards מיד
       const card = allCards.find(c => c.cardNumber === cn);
       if (!card) return;
       card.isArchived = true;
       renderTables();
-      switchCardsTab('archived'); // עבור לטאב ארכיון
+      switchCardsTab('archived');
 
-      // שלח ל-API ברקע — עדכן שורת הארכיון כשמגיע מגודי
-      api({ action: 'archiveCard', token: TOKEN, cardNumber: cn })
+      // 1. סמן כארכיב בגיליון (מהיר)
+      api({ action: 'archiveCard', token: TOKEN, cardNumber: cn }).catch(() => {});
+
+      // 2. משוך נתוני גודי בנפרד ועדכן שורת הארכיון כשמגיע
+      api({ action: 'refreshCard', token: TOKEN, cardNumber: cn })
         .then(res => {
-          if (res.error) return;
-          const m = res.meta || {};
-          // עדכן את שורת הארכיון עם נתוני גודי טריים
-          if (m.liters !== undefined) {
-            const litEl = document.getElementById('arch-liters-' + cn);
-            if (litEl) litEl.textContent = (+m.liters).toLocaleString('he-IL') + ' ל׳';
+          if (res.error || !res.meta) return;
+          const m = res.meta;
+          const litEl = document.getElementById('arch-liters-' + cn);
+          const useEl = document.getElementById('arch-usage-' + cn);
+          if (litEl && m.liters !== undefined) {
+            const col = m.liters <= 10 ? '#f87171' : m.liters <= 30 ? '#fbbf24' : '#9ca3af';
+            litEl.style.color = col;
+            litEl.textContent = (+m.liters).toLocaleString('he-IL') + ' ל׳';
           }
-          if (m.lastUsage) {
-            const useEl = document.getElementById('arch-usage-' + cn);
-            if (useEl) useEl.textContent = m.lastUsage;
-          }
-          // עדכן allCards לסנכרון
-          if (m.fuelType)  card.fuelType  = m.fuelType;
-          if (m.liters !== undefined) card.liters = m.liters;
-          if (m.lastUsage) card.lastUsage = m.lastUsage;
+          if (useEl && m.lastUsage) useEl.textContent = m.lastUsage;
+          // עדכן allCards
+          Object.assign(card, { liters: m.liters, lastUsage: m.lastUsage, fuelType: m.fuelType || card.fuelType });
         })
         .catch(() => {});
+    }
+
+    // ── Unarchive (optimistic) ──
+    function unarchiveCardUI(cn) {
+      const card = allCards.find(c => c.cardNumber === cn);
+      if (!card) return;
+      card.isArchived = false;
+      renderTables();
+      switchCardsTab('active');
+      api({ action: 'unarchiveCard', token: TOKEN, cardNumber: cn }).catch(() => {});
     }
 
     // ── Helpers ──

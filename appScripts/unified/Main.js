@@ -99,8 +99,15 @@ function doPost(e) {
       case 'archiveCard': {
         if (!AdminAuth.verifyToken(data.token)) return _json({ error: 'אין הרשאה' });
         if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
-        const archived = FuelCardsManager.archiveCard(data.cardNumber);
-        return _json({ success: true, meta: archived });
+        FuelCardsManager.archiveCard(data.cardNumber);
+        return _json({ success: true });
+      }
+
+      case 'unarchiveCard': {
+        if (!AdminAuth.verifyToken(data.token)) return _json({ error: 'אין הרשאה' });
+        if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
+        FuelCardsManager.unarchiveCard(data.cardNumber);
+        return _json({ success: true });
       }
 
       case 'updateNotes': {
