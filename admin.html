@@ -46,6 +46,19 @@
     .badge-benzin { background: rgba(20,83,45,0.7);  color: #86efac; border: 1px solid rgba(34,197,94,0.25); }
     .badge-soler  { background: rgba(78,53,0,0.7);   color: #fcd34d; border: 1px solid rgba(251,191,36,0.25); }
     .badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 8px; }
+
+    /* swipe */
+    .swipe-row { transition: transform 0.2s, opacity 0.2s; touch-action: pan-y; }
+    .swipe-row.swiping { transition: none; }
+
+    /* toast */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
+      background: rgba(20,83,45,0.95); border: 1px solid rgba(34,197,94,0.4);
+      color: #86efac; font-weight: 700; font-size: 13px; padding: 10px 20px;
+      border-radius: 12px; z-index: 999; transition: transform 0.3s; white-space: nowrap;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); }
   </style>
 </head>
 <body>
@@ -77,6 +90,8 @@
       </div>
     </div>
   </div>
+
+  <div id="toast"></div>
 
   <!-- MODAL: שימושים אחרונים -->
   <div id="usageModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
@@ -171,15 +186,21 @@
 
       <!-- Cards Table -->
       <div class="card overflow-hidden fade-in">
-        <!-- Tab bar -->
-        <div class="border-b border-white/5 flex items-center justify-between px-4 sm:px-5">
-          <div class="flex">
-            <button id="tabActive"   onclick="switchCardsTab('active')"
-              class="py-4 px-3 text-xs font-bold border-b-2 border-blue-500 text-blue-400 transition-colors">כרטיסים פעילים</button>
-            <button id="tabArchived" onclick="switchCardsTab('archived')"
-              class="py-4 px-3 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors">ארכיון</button>
+        <!-- Tab bar + search -->
+        <div class="border-b border-white/5">
+          <div class="flex items-center justify-between px-4 sm:px-5">
+            <div class="flex">
+              <button id="tabActive"   onclick="switchCardsTab('active')"
+                class="py-4 px-3 text-xs font-bold border-b-2 border-blue-500 text-blue-400 transition-colors">כרטיסים פעילים</button>
+              <button id="tabArchived" onclick="switchCardsTab('archived')"
+                class="py-4 px-3 text-xs font-bold border-b-2 border-transparent text-gray-500 hover:text-gray-300 transition-colors">ארכיון</button>
+            </div>
+            <button onclick="loadCards()" class="text-gray-500 hover:text-white text-sm transition-colors">רענן ↻</button>
           </div>
-          <button onclick="loadCards()" class="text-gray-500 hover:text-white text-sm transition-colors">רענן ↻</button>
+          <div class="px-4 pb-3">
+            <input id="tableSearch" type="text" placeholder="🔍  חיפוש לפי מספר כרטיס או הערה..."
+              oninput="applySearch()" class="input-field" style="font-size:13px;padding:8px 12px;border-radius:10px" />
+          </div>
         </div>
 
         <div id="tableLoading" class="py-12 text-center text-gray-600">
@@ -298,7 +319,7 @@
         const res = await api({ action: 'getCards', token: TOKEN });
         if (res.error === 'אין הרשאה') { logout(); return; }
         allCards = res.cards || [];
-        renderTables();
+        applySearch();
         updateStats(allCards);
       } catch {
         document.getElementById('tableLoading').innerHTML =
@@ -306,15 +327,20 @@
       }
     }
 
-    function renderTables() {
+    function renderTables(cards) {
       document.getElementById('tableLoading').classList.add('hidden');
       switchCardsTab(activeTab);
-
-      const active   = allCards.filter(c => !c.isArchived);
-      const archived = allCards.filter(c =>  c.isArchived);
+      const src      = cards || allCards;
+      const active   = src.filter(c => !c.isArchived);
+      const archived = src.filter(c =>  c.isArchived);
 
       document.getElementById('emptyActive').classList.toggle('hidden', active.length > 0);
       document.getElementById('cardsBody').innerHTML = active.map(c => cardRow(c)).join('');
+      // init swipe after render
+      active.forEach(c => {
+        const row = document.getElementById('row-' + c.cardNumber);
+        if (row) initSwipe(row, c.cardNumber);
+      });
 
       document.getElementById('emptyArchived').classList.toggle('hidden', archived.length > 0);
       document.getElementById('archivedBody').innerHTML = archived.map(c => archivedRow(c)).join('');
@@ -359,23 +385,78 @@
       const badge      = fuelBadge(c.fuelType);
       const totalLit   = (c.cardName || '').match(/(\d+)/);
       const totalLabel = totalLit ? totalLit[1] + ' ל׳' : '—';
-      const litColor   = c.liters <= 10 ? 'color:#f87171' : c.liters <= 30 ? 'color:#fbbf24' : 'color:#9ca3af';
-      const litLabel   = c.liters > 0 ? c.liters.toLocaleString('he-IL') + ' ל׳' : '<span class="text-gray-700 text-xs">טוען...</span>';
+      const litColor   = c.liters <= 10 ? '#f87171' : c.liters <= 30 ? '#fbbf24' : '#9ca3af';
+      const litLabel   = c.liters > 0 ? (+c.liters).toLocaleString('he-IL') + ' ל׳' : '<span style="color:#374151;font-size:11px">טוען...</span>';
+      const txs        = c.recentUsages || [];
+      const txRows     = txs.map(t => `
+        <tr style="border-top:1px solid rgba(255,255,255,0.04)">
+          <td class="py-1.5 text-gray-500 text-xs">${t.vehicle || '—'}</td>
+          <td class="py-1.5 text-gray-400 text-xs">${t.date}</td>
+          <td class="py-1.5 text-gray-600 text-xs">${t.time}</td>
+          <td class="py-1.5 text-gray-400 text-xs" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.station}</td>
+          <td class="py-1.5 text-white text-xs font-bold text-left">${t.liters.toFixed(2)}</td>
+        </tr>`).join('');
+      const txSection  = txs.length ? `
+        <tr id="arch-tx-${c.cardNumber}" class="hidden">
+          <td colspan="6" style="padding:0 12px 12px">
+            <table class="w-full text-xs">
+              <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.07)">
+                <th class="pb-1 text-right text-gray-600 font-semibold">רכב</th>
+                <th class="pb-1 text-right text-gray-600 font-semibold">תאריך</th>
+                <th class="pb-1 text-right text-gray-600 font-semibold">שעה</th>
+                <th class="pb-1 text-right text-gray-600 font-semibold">תחנה</th>
+                <th class="pb-1 text-left text-gray-600 font-semibold">ל׳</th>
+              </thead><tbody>${txRows}</tbody>
+            </table>
+          </td>
+        </tr>` : '';
       return `
-        <tr id="arch-row-${c.cardNumber}" class="border-t border-white/5 opacity-70">
-          <td class="px-3 py-3 text-gray-400 font-bold text-sm">${c.cardNumber}</td>
+        <tr id="arch-row-${c.cardNumber}" class="border-t border-white/5 cursor-pointer hover:bg-white/[0.02]"
+          onclick="toggleArchiveTx('${c.cardNumber}',${txs.length > 0})">
+          <td class="px-3 py-3 text-gray-400 font-bold text-sm">
+            ${txs.length ? `<span id="arch-expand-${c.cardNumber}" style="color:#374151;font-size:10px;margin-left:4px">▶</span>` : ''}
+            ${c.cardNumber}
+          </td>
           <td class="px-3 py-3">${badge}</td>
           <td class="px-3 py-3 text-gray-500 text-sm">${totalLabel}</td>
-          <td class="px-3 py-3 text-sm" id="arch-liters-${c.cardNumber}" style="${litColor}">${litLabel}</td>
+          <td class="px-3 py-3 text-sm" id="arch-liters-${c.cardNumber}" style="color:${litColor}">${litLabel}</td>
           <td class="px-3 py-3 text-gray-600 text-xs">${c.notes || '—'}</td>
-          <td class="px-3 py-3 text-gray-600 text-xs" id="arch-usage-${c.cardNumber}">${c.lastUsage || '<span class="text-gray-700 text-xs">טוען...</span>'}</td>
-          <td class="px-2 py-3">
+          <td class="px-3 py-3 text-gray-600 text-xs" id="arch-usage-${c.cardNumber}">${c.lastUsage || '<span style="color:#374151;font-size:11px">טוען...</span>'}</td>
+          <td class="px-2 py-3" onclick="event.stopPropagation()">
             <button onclick="unarchiveCardUI('${c.cardNumber}')"
               class="text-blue-600 hover:text-blue-400 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-blue-500/10 whitespace-nowrap">
               ↩ החזר
             </button>
           </td>
-        </tr>`;
+        </tr>
+        ${txSection}`;
+    }
+
+    function toggleArchiveTx(cn, hasTx) {
+      if (!hasTx) return;
+      const row = document.getElementById('arch-tx-' + cn);
+      const ico = document.getElementById('arch-expand-' + cn);
+      if (!row) return;
+      const open = row.classList.toggle('hidden');
+      if (ico) ico.textContent = open ? '▶' : '▼';
+      // lazy load מהגיליון אם עדיין ריק
+      if (!open && !row.dataset.loaded) {
+        row.dataset.loaded = '1';
+        api({ action: 'getArchiveHistory', token: TOKEN, cardNumber: cn })
+          .then(res => {
+            if (!res.transactions || !res.transactions.length) return;
+            const tbody = row.querySelector('tbody');
+            if (!tbody) return;
+            tbody.innerHTML = res.transactions.map(t => `
+              <tr style="border-top:1px solid rgba(255,255,255,0.04)">
+                <td class="py-1.5 text-gray-500 text-xs">${t.vehicle || '—'}</td>
+                <td class="py-1.5 text-gray-400 text-xs">${t.date}</td>
+                <td class="py-1.5 text-gray-600 text-xs">${t.time}</td>
+                <td class="py-1.5 text-gray-400 text-xs" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.station}</td>
+                <td class="py-1.5 text-white text-xs font-bold text-left">${(+t.liters).toFixed(2)}</td>
+              </tr>`).join('');
+          }).catch(() => {});
+      }
     }
 
     function updateStats(cards) {
@@ -537,22 +618,45 @@
         .catch(() => alert('שגיאת תקשורת'));
     }
 
+    // ── Toast ──
+    let _toastTimer;
+    function showToast(msg) {
+      const el = document.getElementById('toast');
+      el.textContent = msg;
+      el.classList.add('show');
+      clearTimeout(_toastTimer);
+      _toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+    }
+
+    // ── Search ──
+    function applySearch() {
+      const q = (document.getElementById('tableSearch').value || '').trim().toLowerCase();
+      const filtered = q
+        ? allCards.filter(c => c.cardNumber.includes(q) || (c.notes || '').toLowerCase().includes(q))
+        : allCards;
+      renderTables(filtered);
+    }
+
     // ── Archive (optimistic) ──
     function archiveCardUI(cn) {
       const card = allCards.find(c => c.cardNumber === cn);
       if (!card) return;
       card.isArchived = true;
-      renderTables();
-      switchCardsTab('archived');
+      card.recentUsages = card.recentUsages || [];
+      applySearch(); // רנדר מחדש עם החיפוש הנוכחי
+      showToast('✅ כרטיס ' + cn + ' הועבר לארכיון');
 
-      // 1. סמן כארכיב בגיליון (מהיר)
-      api({ action: 'archiveCard', token: TOKEN, cardNumber: cn }).catch(() => {});
-
-      // 2. משוך נתוני גודי בנפרד ועדכן שורת הארכיון כשמגיע
-      api({ action: 'refreshCard', token: TOKEN, cardNumber: cn })
+      // ארכיב + שליפת גודי + שמירת היסטוריה
+      api({ action: 'archiveCard', token: TOKEN, cardNumber: cn })
         .then(res => {
           if (res.error || !res.meta) return;
           const m = res.meta;
+          // עדכן allCards
+          if (m.liters !== undefined) card.liters = m.liters;
+          if (m.lastUsage)  card.lastUsage  = m.lastUsage;
+          if (m.fuelType)   card.fuelType   = m.fuelType;
+          if (m.recentUsages) card.recentUsages = m.recentUsages;
+          // עדכן DOM של שורת הארכיון
           const litEl = document.getElementById('arch-liters-' + cn);
           const useEl = document.getElementById('arch-usage-' + cn);
           if (litEl && m.liters !== undefined) {
@@ -561,8 +665,46 @@
             litEl.textContent = (+m.liters).toLocaleString('he-IL') + ' ל׳';
           }
           if (useEl && m.lastUsage) useEl.textContent = m.lastUsage;
-          // עדכן allCards
-          Object.assign(card, { liters: m.liters, lastUsage: m.lastUsage, fuelType: m.fuelType || card.fuelType });
+          // עדכן accordion עם transactions
+          if (m.recentUsages && m.recentUsages.length) {
+            let txRow = document.getElementById('arch-tx-' + cn);
+            if (!txRow) {
+              // הוסף accordion row אחרי שורת הכרטיס
+              const archRow = document.getElementById('arch-row-' + cn);
+              if (archRow) {
+                const newTr = document.createElement('tr');
+                newTr.id = 'arch-tx-' + cn;
+                newTr.className = 'hidden';
+                newTr.innerHTML = `<td colspan="6" style="padding:0 12px 12px">
+                  <table class="w-full text-xs"><thead><tr style="border-bottom:1px solid rgba(255,255,255,0.07)">
+                    <th class="pb-1 text-right text-gray-600 font-semibold">רכב</th>
+                    <th class="pb-1 text-right text-gray-600 font-semibold">תאריך</th>
+                    <th class="pb-1 text-right text-gray-600 font-semibold">שעה</th>
+                    <th class="pb-1 text-right text-gray-600 font-semibold">תחנה</th>
+                    <th class="pb-1 text-left text-gray-600 font-semibold">ל׳</th>
+                  </thead><tbody id="arch-tx-body-${cn}"></tbody></table></td>`;
+                archRow.after(newTr);
+                txRow = newTr;
+                // הוסף expand icon
+                const ico = document.getElementById('arch-expand-' + cn);
+                if (!ico) {
+                  const td = archRow.querySelector('td:first-child');
+                  if (td) td.insertAdjacentHTML('afterbegin', `<span id="arch-expand-${cn}" style="color:#374151;font-size:10px;margin-left:4px">▶</span>`);
+                }
+              }
+            }
+            const tbody = document.getElementById('arch-tx-body-' + cn) || txRow && txRow.querySelector('tbody');
+            if (tbody) {
+              tbody.innerHTML = m.recentUsages.map(t => `
+                <tr style="border-top:1px solid rgba(255,255,255,0.04)">
+                  <td class="py-1.5 text-gray-500 text-xs">${t.vehicle || '—'}</td>
+                  <td class="py-1.5 text-gray-400 text-xs">${t.date}</td>
+                  <td class="py-1.5 text-gray-600 text-xs">${t.time}</td>
+                  <td class="py-1.5 text-gray-400 text-xs" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.station}</td>
+                  <td class="py-1.5 text-white text-xs font-bold text-left">${(+t.liters).toFixed(2)}</td>
+                </tr>`).join('');
+            }
+          }
         })
         .catch(() => {});
     }
@@ -572,9 +714,30 @@
       const card = allCards.find(c => c.cardNumber === cn);
       if (!card) return;
       card.isArchived = false;
-      renderTables();
-      switchCardsTab('active');
+      applySearch();
+      showToast('↩ כרטיס ' + cn + ' הוחזר לפעילים');
       api({ action: 'unarchiveCard', token: TOKEN, cardNumber: cn }).catch(() => {});
+    }
+
+    // ── Swipe to archive (mobile) ──
+    function initSwipe(row, cn) {
+      let startX = 0, dx = 0, swiping = false;
+      row.addEventListener('touchstart', e => { startX = e.touches[0].clientX; swiping = true; row.classList.add('swiping'); }, { passive: true });
+      row.addEventListener('touchmove', e => {
+        if (!swiping) return;
+        dx = e.touches[0].clientX - startX;
+        if (dx < 0) row.style.transform = 'translateX(' + Math.max(dx, -120) + 'px)';
+      }, { passive: true });
+      row.addEventListener('touchend', () => {
+        row.classList.remove('swiping');
+        if (dx < -80) {
+          row.style.transform = 'translateX(-100%)'; row.style.opacity = '0';
+          setTimeout(() => archiveCardUI(cn), 200);
+        } else {
+          row.style.transform = ''; row.style.opacity = '';
+        }
+        dx = 0; swiping = false;
+      });
     }
 
     // ── Helpers ──

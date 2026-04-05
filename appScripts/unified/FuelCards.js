@@ -147,15 +147,63 @@ class FuelCardsManager {
     throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0 \u05d1\u05de\u05e2\u05e8\u05db\u05ea'); // לא נמצא במערכת
   }
 
-  // ── ארכיב כרטיס — סימון בלבד (מהיר) ──
+  // ── גיליון ארכיון תדלוקים ──
+  static _getArchiveSheet() {
+    const ss = SpreadsheetApp.openById(CONFIG.SHEETS.MAIN);
+    let s = ss.getSheetByName('\u05d0\u05e8\u05db\u05d9\u05d5\u05df \u05ea\u05d3\u05dc\u05d5\u05e7\u05d9\u05dd'); // ארכיון תדלוקים
+    if (!s) {
+      s = ss.insertSheet('\u05d0\u05e8\u05db\u05d9\u05d5\u05df \u05ea\u05d3\u05dc\u05d5\u05e7\u05d9\u05dd');
+      s.appendRow(['\u05de\u05e1\u05e4\u05e8 \u05db\u05e8\u05d8\u05d9\u05e1', '\u05de\u05e1\u05e4\u05e8 \u05e8\u05db\u05d1', '\u05ea\u05d0\u05e8\u05d9\u05da', '\u05e9\u05e2\u05d4', '\u05ea\u05d7\u05e0\u05d4', '\u05d7\u05d1\u05e8\u05d4', '\u05dc\u05d9\u05d8\u05e8\u05d9\u05dd', '\u05ea\u05d0\u05e8\u05d9\u05da \u05d0\u05e8\u05db\u05d5\u05d1']);
+      const hr = s.getRange(1, 1, 1, 8);
+      hr.setBackground('#1a1a2e'); hr.setFontColor('#fff'); hr.setFontWeight('bold');
+    }
+    return s;
+  }
+
+  static saveArchiveHistory(cardNumber, transactions) {
+    const s  = this._getArchiveSheet();
+    const cn = cardNumber.toString().trim();
+    const now = new Date().toISOString();
+    // מחק שורות קיימות לכרטיס
+    const rows = s.getDataRange().getValues();
+    for (let i = rows.length - 1; i >= 1; i--) {
+      if (rows[i][0].toString().trim() === cn) s.deleteRow(i + 1);
+    }
+    if (!transactions || !transactions.length) return;
+    const data = transactions.map(t => [cn, t.vehicle || '', t.date, t.time, t.station || '', t.company || '', t.liters, now]);
+    s.getRange(s.getLastRow() + 1, 1, data.length, 8).setValues(data);
+  }
+
+  static getArchiveHistory(cardNumber) {
+    const s  = this._getArchiveSheet();
+    const cn = cardNumber.toString().trim();
+    return s.getDataRange().getValues().slice(1)
+      .filter(r => r[0].toString().trim() === cn)
+      .map(r => ({ vehicle: r[1], date: r[2], time: r[3], station: r[4], company: r[5], liters: parseFloat(r[6]) || 0 }));
+  }
+
+  // ── ארכיב כרטיס + שמירת היסטוריה ──
   static archiveCard(cardNumber) {
     const sheet = this._getSheet();
     const rows  = sheet.getDataRange().getValues();
     const cn    = cardNumber.toString().trim();
     for (let i = 1; i < rows.length; i++) {
       if (rows[i][0].toString().trim() !== cn) continue;
-      sheet.getRange(i + 1, 8).setValue(true);
-      return true;
+      const row = i + 1;
+      sheet.getRange(row, 8).setValue(true);
+      // שלוף מגודי ושמור היסטוריה
+      try {
+        const goodi = FuelGoodi.lookup(cn);
+        if (goodi) {
+          sheet.getRange(row, 2).setValue(goodi.fuelType   || '');
+          sheet.getRange(row, 3).setValue(goodi.litersLeft || 0);
+          sheet.getRange(row, 6).setValue(goodi.cardName   || '');
+          sheet.getRange(row, 7).setValue(new Date().toISOString());
+          this.saveArchiveHistory(cn, goodi.recentUsages || []);
+          return { liters: goodi.litersLeft, lastUsage: goodi.lastUsage, fuelType: goodi.fuelType, recentUsages: goodi.recentUsages || [] };
+        }
+      } catch (_) {}
+      return {};
     }
     throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0');
   }
