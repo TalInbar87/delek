@@ -43,6 +43,9 @@
     .swipe-row { transition: transform 0.25s ease, opacity 0.25s ease; touch-action: pan-y; }
     .swipe-row.swiping { transition: none !important; }
 
+    /* sticky table header */
+    thead th { position: sticky; top: 0; z-index: 5; background: rgba(10,15,30,0.95); backdrop-filter: blur(8px); }
+
     /* toast */
     #toast {
       position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px);
@@ -365,9 +368,7 @@
       return `
         <tr id="row-act-${cn}" class="border-t border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer"
           onclick="toggleTx('tx-act-${cn}','tx-act-body-${cn}','expand-act-${cn}')">
-          <td class="px-3 py-3 text-white font-bold text-sm">
-            <span id="expand-act-${cn}" style="color:#374151;font-size:10px;margin-left:4px">▶</span>${cn}
-          </td>
+          <td class="px-3 py-3 text-white font-bold text-sm">${cn}</td>
           <td class="px-3 py-3">${badge}</td>
           <td class="px-3 py-3 text-gray-400 text-sm">${totalLabel}</td>
           <td class="px-3 py-3 text-sm" style="${litColor}">${c.liters.toLocaleString('he-IL')} ל׳
@@ -381,7 +382,7 @@
             </div>
           </td>
           <td class="px-2 py-3" onclick="event.stopPropagation()">
-            <div class="flex items-center gap-1">
+            <div class="hidden sm:flex items-center gap-1">
               <button onclick="markEmptyUI('${cn}')" title="סמן כריק"
                 class="text-gray-600 hover:text-gray-300 text-base transition-colors px-1.5 py-1 rounded-lg hover:bg-white/10">📭</button>
               <button onclick="archiveCardUI('${cn}')" title="העבר לארכיון"
@@ -404,9 +405,7 @@
       return `
         <tr id="row-arch-${cn}" class="border-t border-white/5 cursor-pointer hover:bg-white/[0.02]"
           onclick="toggleTx('tx-arch-${cn}','tx-arch-body-${cn}','expand-arch-${cn}')">
-          <td class="px-3 py-3 text-gray-400 font-bold text-sm">
-            <span id="expand-arch-${cn}" style="color:#374151;font-size:10px;margin-left:4px">▶</span>${cn}
-          </td>
+          <td class="px-3 py-3 text-gray-400 font-bold text-sm">${cn}</td>
           <td class="px-3 py-3">${badge}</td>
           <td class="px-3 py-3 text-gray-500 text-sm">${totalLabel}</td>
           <td class="px-3 py-3 text-sm" id="liters-arch-${cn}" style="color:${litColor}">${litLabel}</td>
@@ -414,7 +413,7 @@
           <td class="px-3 py-3 text-gray-600 text-xs" id="usage-arch-${cn}">${c.lastUsage || '<span style="color:#374151;font-size:11px">טוען...</span>'}</td>
           <td class="px-2 py-3" onclick="event.stopPropagation()">
             <button onclick="unarchiveCardUI('${cn}')"
-              class="text-blue-600 hover:text-blue-400 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-blue-500/10 whitespace-nowrap">↩ החזר</button>
+              class="hidden sm:block text-blue-600 hover:text-blue-400 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-blue-500/10 whitespace-nowrap">↩ החזר</button>
           </td>
         </tr>
         <tr id="tx-arch-${cn}" class="hidden" data-cn="${cn}">
@@ -430,14 +429,12 @@
       return `
         <tr id="row-emp-${cn}" class="border-t border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer"
           onclick="toggleTx('tx-emp-${cn}','tx-emp-body-${cn}','expand-emp-${cn}')">
-          <td class="px-3 py-3 text-white font-bold text-sm">
-            <span id="expand-emp-${cn}" style="color:#374151;font-size:10px;margin-left:4px">▶</span>${cn}
-          </td>
+          <td class="px-3 py-3 text-white font-bold text-sm">${cn}</td>
           <td class="px-3 py-3">${badge}</td>
           <td class="px-3 py-3 text-gray-500 text-sm">${totalLabel}</td>
           <td class="px-3 py-3 text-gray-600 text-xs">${c.notes || '—'}</td>
           <td class="px-2 py-3" onclick="event.stopPropagation()">
-            <div class="flex items-center gap-1">
+            <div class="hidden sm:flex items-center gap-1">
               <button onclick="markNotEmptyUI('${cn}')" title="החזר לפעילים"
                 class="text-blue-600 hover:text-blue-400 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-blue-500/10 whitespace-nowrap">↩ פעיל</button>
               <button onclick="archiveCardUI('${cn}')" title="העבר לארכיון"
@@ -838,6 +835,7 @@
           swiping = true;
         }
         if (dx >= 0) { row.style.transform = ''; return; }
+        e.preventDefault(); // מונע גלילה אנכית בזמן swipe אופקי
         const pull = -dx;
         row.classList.add('swiping');
         row.style.transform = 'translateX(-' + Math.min(pull, PANEL_W) + 'px)';
@@ -845,7 +843,7 @@
           ? 'rgba(120,53,15,0.12)'
           : 'rgba(55,65,81,0.08)';
         positionPanel(pull);
-      }, { passive: true });
+      }, { passive: false });
 
       function endSwipe() {
         row.classList.remove('swiping');
