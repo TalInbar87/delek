@@ -191,8 +191,7 @@
               <tr class="border-b border-white/5">
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">מספר כרטיס</th>
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">סוג</th>
-                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">כמות בכרטיס</th>
-                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">נשאר</th>
+                <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">נשאר / סה״כ</th>
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">הערה</th>
                 <th class="px-3 py-3"></th>
               </tr>
@@ -358,22 +357,21 @@
     }
 
     function cardRow(c) {
-      const badge      = fuelBadge(c.fuelType);
-      const litColor   = c.liters <= 10 ? 'color:#f87171;font-weight:700' : c.liters <= 30 ? 'color:#fbbf24;font-weight:700' : 'color:#e5e7eb';
-      const updatedAt  = c.lastUpdated ? new Date(c.lastUpdated).toLocaleDateString('he-IL') : '—';
-      const totalLit   = (c.cardName || '').match(/(\d+)/);
-      const totalLabel = totalLit ? totalLit[1] + ' ל׳' : '—';
-      const noteVal    = (c.notes || '').replace(/'/g, '&#39;');
+      const badge    = fuelBadge(c.fuelType);
+      const litColor = c.liters <= 10 ? '#f87171' : c.liters <= 30 ? '#fbbf24' : '#e5e7eb';
+      const totalLit = (c.cardName || '').match(/(\d+)/);
+      const totalNum = totalLit ? totalLit[1] : null;
+      const combined = totalNum
+        ? `<span style="color:${litColor};font-weight:700">${c.liters.toLocaleString('he-IL')}</span><span style="color:#4b5563"> / ${totalNum} ל׳</span>`
+        : `<span style="color:${litColor};font-weight:700">${c.liters.toLocaleString('he-IL')} ל׳</span>`;
+      const noteVal  = (c.notes || '').replace(/'/g, '&#39;');
       const cn = c.cardNumber;
       return `
         <tr id="row-act-${cn}" class="border-t border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer"
           onclick="toggleTx('tx-act-${cn}','tx-act-body-${cn}','expand-act-${cn}')">
           <td class="px-3 py-3 text-white font-bold text-sm">${cn}</td>
           <td class="px-3 py-3">${badge}</td>
-          <td class="px-3 py-3 text-gray-400 text-sm">${totalLabel}</td>
-          <td class="px-3 py-3 text-sm" style="${litColor}">${c.liters.toLocaleString('he-IL')} ל׳
-            <span class="text-gray-700 text-xs mr-1">(${updatedAt})</span>
-          </td>
+          <td class="px-3 py-3 text-sm" id="liters-act-${cn}">${combined}</td>
           <td class="px-3 py-3" id="note-cell-${cn}" onclick="event.stopPropagation()">
             <div class="flex items-center gap-1.5">
               <span id="note-text-${cn}" class="text-gray-500 text-xs">${c.notes || '—'}</span>
@@ -391,7 +389,7 @@
           </td>
         </tr>
         <tr id="tx-act-${cn}" class="hidden" data-cn="${cn}">
-          <td colspan="6" style="padding:0 12px 12px">${txTableHTML('tx-act-body-' + cn)}</td>
+          <td colspan="5" style="padding:0 12px 12px">${txTableHTML('tx-act-body-' + cn)}</td>
         </tr>`;
     }
 
@@ -477,26 +475,61 @@
     // ── Unified accordion toggle (כל הטאבים) ──
     function toggleTx(txId, bodyId, iconId) {
       const row  = document.getElementById(txId);
-      const ico  = document.getElementById(iconId);
       if (!row) return;
       const nowHidden = row.classList.toggle('hidden');
-      if (ico) ico.textContent = nowHidden ? '▶' : '▼';
       // lazy load בפתיחה ראשונה בלבד
       if (!nowHidden && !row.dataset.loaded) {
         row.dataset.loaded = '1';
         const cn    = row.dataset.cn;
         const tbody = document.getElementById(bodyId);
-        api({ action: 'getArchiveHistory', token: TOKEN, cardNumber: cn })
-          .then(res => {
-            if (!tbody) return;
-            if (!res.transactions || !res.transactions.length) {
-              tbody.innerHTML = '<tr><td colspan="5" class="py-3 text-center text-gray-600 text-xs">אין היסטוריית תדלוקים</td></tr>';
-              return;
-            }
-            tbody.innerHTML = txRowsHTML(res.transactions);
-          }).catch(() => {
-            if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-3 text-center text-red-500 text-xs">שגיאה בטעינת הנתונים</td></tr>';
-          });
+
+        if (txId.startsWith('tx-act-')) {
+          // כרטיסים פעילים — שליפה חיה מגודי
+          api({ action: 'refreshCard', token: TOKEN, cardNumber: cn })
+            .then(res => {
+              if (!tbody) return;
+              if (res.error) {
+                tbody.innerHTML = `<tr><td colspan="5" class="py-3 text-center text-red-500 text-xs">${res.error}</td></tr>`;
+                return;
+              }
+              const m = res.meta || {};
+              // עדכן תא ליטרים בשורה
+              if (m.liters !== undefined) {
+                const card = allCards.find(c => c.cardNumber === cn);
+                if (card) card.liters = m.liters;
+                const litEl = document.getElementById('liters-act-' + cn);
+                if (litEl) {
+                  const col    = m.liters <= 10 ? '#f87171' : m.liters <= 30 ? '#fbbf24' : '#e5e7eb';
+                  const totLit = (card && card.cardName || '').match(/(\d+)/);
+                  const totNum = totLit ? totLit[1] : null;
+                  litEl.innerHTML = totNum
+                    ? `<span style="color:${col};font-weight:700">${(+m.liters).toLocaleString('he-IL')}</span><span style="color:#4b5563"> / ${totNum} ל׳</span>`
+                    : `<span style="color:${col};font-weight:700">${(+m.liters).toLocaleString('he-IL')} ל׳</span>`;
+                }
+              }
+              // הצג היסטוריית תדלוקים
+              if (!m.recentUsages || !m.recentUsages.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="py-3 text-center text-gray-600 text-xs">אין היסטוריית תדלוקים</td></tr>';
+                return;
+              }
+              tbody.innerHTML = txRowsHTML(m.recentUsages);
+            }).catch(() => {
+              if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-3 text-center text-red-500 text-xs">שגיאה בטעינת הנתונים</td></tr>';
+            });
+        } else {
+          // ארכיון / ריקים — היסטוריה שמורה
+          api({ action: 'getArchiveHistory', token: TOKEN, cardNumber: cn })
+            .then(res => {
+              if (!tbody) return;
+              if (!res.transactions || !res.transactions.length) {
+                tbody.innerHTML = '<tr><td colspan="5" class="py-3 text-center text-gray-600 text-xs">אין היסטוריית תדלוקים</td></tr>';
+                return;
+              }
+              tbody.innerHTML = txRowsHTML(res.transactions);
+            }).catch(() => {
+              if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-3 text-center text-red-500 text-xs">שגיאה בטעינת הנתונים</td></tr>';
+            });
+        }
       }
     }
 
