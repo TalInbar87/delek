@@ -253,7 +253,33 @@
     let TOKEN    = localStorage.getItem('delek_token');
     let allCards = [];   // כל הכרטיסים — משמש לאופטימיסטיק
     let activeTab = 'active';
-    if (TOKEN) showPanel();
+
+    // ── Auth init — אימות שקט לפני הצגת הפאנל ──
+    (async function init() {
+      if (!TOKEN) return; // אין טוקן — מציג כניסה כרגיל
+      // יש טוקן — בדיקה שקטה מאחורי מסך הכניסה
+      const btn = document.getElementById('loginBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full" style="animation:spin 0.8s linear infinite"></span>';
+      try {
+        const res = await api({ action: 'getCards', token: TOKEN });
+        if (res.error === 'אין הרשאה') {
+          localStorage.removeItem('delek_token'); TOKEN = null;
+          btn.disabled = false; btn.textContent = 'כניסה';
+          return;
+        }
+        allCards = res.cards || [];
+        // טוקן תקין — מעבר לפאנל עם נתונים טעונים
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('adminPanel').classList.remove('hidden');
+        document.getElementById('tableLoading').classList.add('hidden');
+        applySearch();
+        updateStats(allCards);
+        api({ action: 'warmCache' }).catch(() => {});
+      } catch {
+        btn.disabled = false; btn.textContent = 'כניסה';
+      }
+    })();
 
     // ── Login ──
     async function login(e) {
