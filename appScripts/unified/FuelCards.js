@@ -10,6 +10,8 @@
  *   E = תאריך הוספה
  *   F = שם כרטיס (מגודי)
  *   G = עדכון אחרון מגודי
+ *   H = ארכיב (true/false)
+ *   I = ריק   (true/false)
  * ================================================================
  */
 
@@ -28,9 +30,10 @@ class FuelCardsManager {
         '\u05ea\u05d0\u05e8\u05d9\u05da \u05d4\u05d5\u05e1\u05e4\u05d4',
         '\u05e9\u05dd \u05db\u05e8\u05d8\u05d9\u05e1',
         '\u05e2\u05d3\u05db\u05d5\u05df \u05d0\u05d7\u05e8\u05d5\u05df',
-        '\u05d0\u05e8\u05db\u05d9\u05d1'  // ארכיב
+        '\u05d0\u05e8\u05db\u05d9\u05d1',  // ארכיב
+        '\u05e8\u05d9\u05e7'               // ריק
       ]);
-      const hr = sheet.getRange(1, 1, 1, 8);
+      const hr = sheet.getRange(1, 1, 1, 9);
       hr.setBackground(CONFIG.FUEL.HEADER_COLOR);
       hr.setFontColor('#FFFFFF');
       hr.setFontWeight('bold');
@@ -75,7 +78,8 @@ class FuelCardsManager {
         dateAdded:   rows[i][4] || '',
         cardName:    rows[i][5] || '',
         lastUpdated: rows[i][6] || '',
-        isArchived:  rows[i][7] === true || rows[i][7] === 'TRUE'
+        isArchived:  rows[i][7] === true || rows[i][7] === 'TRUE',
+        isEmpty:     rows[i][8] === true || rows[i][8] === 'TRUE'
       });
     }
     return cards;
@@ -208,14 +212,43 @@ class FuelCardsManager {
     throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0');
   }
 
-  // ── שחזור מארכיב ──
+  // ── שחזור מארכיב (חוזר תמיד לפעיל) ──
   static unarchiveCard(cardNumber) {
     const sheet = this._getSheet();
     const rows  = sheet.getDataRange().getValues();
     const cn    = cardNumber.toString().trim();
     for (let i = 1; i < rows.length; i++) {
       if (rows[i][0].toString().trim() !== cn) continue;
-      sheet.getRange(i + 1, 8).setValue(false);
+      sheet.getRange(i + 1, 8).setValue(false); // isArchived = false
+      sheet.getRange(i + 1, 9).setValue(false); // isEmpty   = false
+      return true;
+    }
+    throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0');
+  }
+
+  // ── סמן כרטיס כריק ──
+  static markEmpty(cardNumber) {
+    const sheet = this._getSheet();
+    const rows  = sheet.getDataRange().getValues();
+    const cn    = cardNumber.toString().trim();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString().trim() !== cn) continue;
+      sheet.getRange(i + 1, 9).setValue(true);
+      sheet.getRange(i + 1, 7).setValue(new Date().toISOString());
+      return true;
+    }
+    throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0');
+  }
+
+  // ── בטל ריק → החזר לפעיל ──
+  static markNotEmpty(cardNumber) {
+    const sheet = this._getSheet();
+    const rows  = sheet.getDataRange().getValues();
+    const cn    = cardNumber.toString().trim();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString().trim() !== cn) continue;
+      sheet.getRange(i + 1, 9).setValue(false);
+      sheet.getRange(i + 1, 7).setValue(new Date().toISOString());
       return true;
     }
     throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0');
