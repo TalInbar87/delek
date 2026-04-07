@@ -43,8 +43,9 @@
     .swipe-row { transition: transform 0.25s ease, opacity 0.25s ease; touch-action: pan-y; }
     .swipe-row.swiping { transition: none !important; }
 
-    /* sticky table header */
-    thead th { position: sticky; top: 0; z-index: 5; background: rgba(10,15,30,0.95); backdrop-filter: blur(8px); }
+    /* sticky table header — works inside the panel scroll containers */
+    .table-panel { max-height: 62vh; overflow-x: auto; overflow-y: auto; }
+    .table-panel thead th { position: sticky; top: 0; z-index: 5; background: rgba(10,15,30,0.97); backdrop-filter: blur(8px); }
 
     /* toast */
     #toast {
@@ -185,7 +186,7 @@
         </div>
 
         <!-- Active tab -->
-        <div id="panelActive" class="overflow-x-auto">
+        <div id="panelActive" class="table-panel">
           <table class="w-full text-sm" style="min-width:480px">
             <thead>
               <tr class="border-b border-white/5">
@@ -204,7 +205,7 @@
         </div>
 
         <!-- Empty tab -->
-        <div id="panelEmpty" class="hidden overflow-x-auto">
+        <div id="panelEmpty" class="hidden table-panel">
           <table class="w-full text-sm" style="min-width:400px">
             <thead>
               <tr class="border-b border-white/5">
@@ -223,7 +224,7 @@
         </div>
 
         <!-- Archive tab -->
-        <div id="panelArchived" class="hidden overflow-x-auto">
+        <div id="panelArchived" class="hidden table-panel">
           <table class="w-full text-sm" style="min-width:480px">
             <thead>
               <tr class="border-b border-white/5">
@@ -868,7 +869,6 @@
           swiping = true;
         }
         if (dx >= 0) { row.style.transform = ''; return; }
-        e.preventDefault(); // מונע גלילה אנכית בזמן swipe אופקי
         const pull = -dx;
         row.classList.add('swiping');
         row.style.transform = 'translateX(-' + Math.min(pull, PANEL_W) + 'px)';
@@ -876,7 +876,7 @@
           ? 'rgba(120,53,15,0.12)'
           : 'rgba(55,65,81,0.08)';
         positionPanel(pull);
-      }, { passive: false });
+      }, { passive: true });
 
       function endSwipe() {
         row.classList.remove('swiping');
