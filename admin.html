@@ -31,14 +31,6 @@
     .btn-green:hover   { background: linear-gradient(135deg, #22c55e, #16a34a); }
     .btn-green:disabled { opacity: 0.5; cursor: not-allowed; }
 
-    .btn-import {
-      background: rgba(59,130,246,0.15); color: #93c5fd; font-size: 11px; font-weight: 700;
-      padding: 4px 10px; border-radius: 8px; border: 1px solid rgba(59,130,246,0.25);
-      cursor: pointer; transition: all 0.15s; white-space: nowrap;
-    }
-    .btn-import:hover   { background: rgba(59,130,246,0.3); color: #fff; }
-    .btn-import:disabled { opacity: 0.4; cursor: not-allowed; }
-
     .card {
       background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
       border-radius: 18px; backdrop-filter: blur(8px);
@@ -92,35 +84,6 @@
   </div>
 
   <div id="toast"></div>
-
-  <!-- MODAL: שימושים אחרונים -->
-  <div id="usageModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
-    style="background:rgba(0,0,0,0.75);backdrop-filter:blur(4px)" onclick="closeModal(event)">
-    <div class="w-full sm:max-w-lg card p-5 fade-in rounded-b-none sm:rounded-2xl overflow-hidden"
-      style="background:#0d1b2e;border-color:rgba(255,255,255,0.1);max-height:90vh;display:flex;flex-direction:column">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="text-white font-black text-base" id="modalTitle">שימושים אחרונים</h3>
-        <button onclick="document.getElementById('usageModal').classList.add('hidden')"
-          class="text-gray-500 hover:text-white text-xl leading-none">✕</button>
-      </div>
-      <div id="modalSummary" class="grid grid-cols-3 gap-2 mb-4 text-center text-xs"></div>
-      <div class="overflow-y-auto flex-1">
-        <table class="w-full text-xs" id="modalTable">
-          <thead>
-            <tr class="border-b border-white/10 text-gray-500">
-              <th class="pb-2 text-right font-semibold">מ. רכב</th>
-              <th class="pb-2 text-right font-semibold">תאריך</th>
-              <th class="pb-2 text-right font-semibold">שעה</th>
-              <th class="pb-2 text-right font-semibold">תחנה</th>
-              <th class="pb-2 text-left font-semibold">ל׳</th>
-            </tr>
-          </thead>
-          <tbody id="modalBody"></tbody>
-        </table>
-        <p id="modalEmpty" class="hidden text-center text-gray-600 py-6 text-sm">אין שימושים ב-30 הימים האחרונים</p>
-      </div>
-    </div>
-  </div>
 
   <!-- ADMIN PANEL -->
   <div id="adminPanel" class="hidden min-h-screen">
@@ -220,10 +183,9 @@
 
         <!-- Active tab -->
         <div id="panelActive" class="overflow-x-auto">
-          <table class="w-full text-sm" style="min-width:560px">
+          <table class="w-full text-sm" style="min-width:480px">
             <thead>
               <tr class="border-b border-white/5">
-                <th class="px-3 py-3"></th>
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">מספר כרטיס</th>
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">סוג</th>
                 <th class="px-3 py-3 text-right text-gray-500 text-xs font-semibold">כמות בכרטיס</th>
@@ -403,10 +365,6 @@
       return `
         <tr id="row-act-${cn}" class="border-t border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer"
           onclick="toggleTx('tx-act-${cn}','tx-act-body-${cn}','expand-act-${cn}')">
-          <td class="px-2 py-3" onclick="event.stopPropagation()">
-            <button id="import-${cn}" onclick="refreshCard('${cn}')"
-              class="btn-import" title="דוח תדלוקים">📊</button>
-          </td>
           <td class="px-3 py-3 text-white font-bold text-sm">
             <span id="expand-act-${cn}" style="color:#374151;font-size:10px;margin-left:4px">▶</span>${cn}
           </td>
@@ -432,7 +390,7 @@
           </td>
         </tr>
         <tr id="tx-act-${cn}" class="hidden" data-cn="${cn}">
-          <td colspan="7" style="padding:0 12px 12px">${txTableHTML('tx-act-body-' + cn)}</td>
+          <td colspan="6" style="padding:0 12px 12px">${txTableHTML('tx-act-body-' + cn)}</td>
         </tr>`;
     }
 
@@ -601,65 +559,6 @@
       setTimeout(() => el.classList.add('hidden'), 4000);
     }
 
-    // ── Refresh from Goodi ──
-    async function refreshCard(cn) {
-      const btn = document.getElementById('import-' + cn);
-      if (btn) { btn.disabled = true; btn.textContent = '...'; }
-      try {
-        const res = await api({ action: 'refreshCard', token: TOKEN, cardNumber: cn });
-        if (res.error) { alert(res.error); return; }
-        loadCards();
-        showUsageModal(cn, res.meta);
-      } catch { alert('שגיאת תקשורת'); }
-      finally { if (btn) { btn.disabled = false; btn.textContent = '📊 דוח תדלוקים'; } }
-    }
-
-    function showUsageModal(cn, meta) {
-      if (!meta) return;
-      document.getElementById('modalTitle').textContent = (meta.cardName || cn) + ' — שימושים אחרונים';
-
-      // סיכום
-      document.getElementById('modalSummary').innerHTML = `
-        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:8px">
-          <p class="text-gray-500 mb-0.5">נשאר</p>
-          <p class="text-white font-black text-base">${(meta.liters||0).toLocaleString('he-IL',{maximumFractionDigits:2})} ל׳</p>
-        </div>
-        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:8px">
-          <p class="text-gray-500 mb-0.5">שומש</p>
-          <p class="text-white font-black text-base">${(meta.litersUsed||0).toLocaleString('he-IL',{maximumFractionDigits:2})} ל׳</p>
-        </div>
-        <div style="background:rgba(255,255,255,0.04);border-radius:10px;padding:8px">
-          <p class="text-gray-500 mb-0.5">עלות</p>
-          <p class="text-white font-black text-base">₪${(meta.amountUsed||0).toLocaleString('he-IL',{maximumFractionDigits:0})}</p>
-        </div>`;
-
-      // שורות
-      const usages = meta.recentUsages || [];
-      const tbody  = document.getElementById('modalBody');
-      const empty  = document.getElementById('modalEmpty');
-      if (!usages.length) {
-        tbody.innerHTML = '';
-        empty.classList.remove('hidden');
-      } else {
-        empty.classList.add('hidden');
-        tbody.innerHTML = usages.map(u => `
-          <tr class="border-t border-white/5">
-            <td class="py-2 text-gray-400 font-mono text-xs">${u.vehicle || '—'}</td>
-            <td class="py-2 text-gray-300">${u.date}</td>
-            <td class="py-2 text-gray-500">${u.time}</td>
-            <td class="py-2 text-gray-300" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${u.station}</td>
-            <td class="py-2 text-white font-bold text-left">${u.liters.toFixed(2)}</td>
-          </tr>`).join('');
-      }
-
-      document.getElementById('usageModal').classList.remove('hidden');
-    }
-
-    function closeModal(e) {
-      if (e.target === document.getElementById('usageModal'))
-        document.getElementById('usageModal').classList.add('hidden');
-    }
-
     // ── Edit Note inline ──
     function editNote(cn, current) {
       const cell = document.getElementById('note-cell-' + cn);
@@ -725,6 +624,7 @@
         ? allCards.filter(c => c.cardNumber.includes(q) || (c.notes || '').toLowerCase().includes(q))
         : allCards;
       renderTables(filtered);
+      updateStats(allCards); // עדכן סטטיסטיקות מיד
     }
 
     // ── Archive (optimistic) ──
