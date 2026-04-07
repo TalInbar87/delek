@@ -371,7 +371,7 @@
       document.getElementById('emptyActive').classList.toggle('hidden', active.length > 0);
       document.getElementById('cardsBody').innerHTML = active.map(c => cardRow(c)).join('');
       active.forEach(c => {
-        const row = document.getElementById('row-' + c.cardNumber);
+        const row = document.getElementById('row-act-' + c.cardNumber);
         if (row) initSwipe(row, c.cardNumber, 'active');
       });
 
@@ -379,7 +379,7 @@
       document.getElementById('emptyEmptyState').classList.toggle('hidden', empty.length > 0);
       document.getElementById('emptyCardsBody').innerHTML = empty.map(c => emptyCardRow(c)).join('');
       empty.forEach(c => {
-        const row = document.getElementById('empty-row-' + c.cardNumber);
+        const row = document.getElementById('row-emp-' + c.cardNumber);
         if (row) initSwipe(row, c.cardNumber, 'empty');
       });
 
@@ -387,7 +387,7 @@
       document.getElementById('emptyArchived').classList.toggle('hidden', archived.length > 0);
       document.getElementById('archivedBody').innerHTML = archived.map(c => archivedRow(c)).join('');
       archived.forEach(c => {
-        const row = document.getElementById('arch-row-' + c.cardNumber);
+        const row = document.getElementById('row-arch-' + c.cardNumber);
         if (row) initSwipe(row, c.cardNumber, 'archived');
       });
     }
@@ -399,37 +399,40 @@
       const totalLit   = (c.cardName || '').match(/(\d+)/);
       const totalLabel = totalLit ? totalLit[1] + ' ל׳' : '—';
       const noteVal    = (c.notes || '').replace(/'/g, '&#39;');
+      const cn = c.cardNumber;
       return `
-        <tr id="row-${c.cardNumber}" class="border-t border-white/5 hover:bg-white/[0.02] transition-colors">
-          <td class="px-2 py-3">
-            <button id="import-${c.cardNumber}" onclick="refreshCard('${c.cardNumber}')"
+        <tr id="row-act-${cn}" class="border-t border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer"
+          onclick="toggleTx('tx-act-${cn}','tx-act-body-${cn}','expand-act-${cn}')">
+          <td class="px-2 py-3" onclick="event.stopPropagation()">
+            <button id="import-${cn}" onclick="refreshCard('${cn}')"
               class="btn-import" title="דוח תדלוקים">📊</button>
           </td>
-          <td class="px-3 py-3 text-white font-bold text-sm">${c.cardNumber}</td>
+          <td class="px-3 py-3 text-white font-bold text-sm">
+            <span id="expand-act-${cn}" style="color:#374151;font-size:10px;margin-left:4px">▶</span>${cn}
+          </td>
           <td class="px-3 py-3">${badge}</td>
           <td class="px-3 py-3 text-gray-400 text-sm">${totalLabel}</td>
           <td class="px-3 py-3 text-sm" style="${litColor}">${c.liters.toLocaleString('he-IL')} ל׳
             <span class="text-gray-700 text-xs mr-1">(${updatedAt})</span>
           </td>
-          <td class="px-3 py-3" id="note-cell-${c.cardNumber}">
+          <td class="px-3 py-3" id="note-cell-${cn}" onclick="event.stopPropagation()">
             <div class="flex items-center gap-1.5">
-              <span id="note-text-${c.cardNumber}" class="text-gray-500 text-xs">${c.notes || '—'}</span>
-              <button onclick="editNote('${c.cardNumber}','${noteVal}')"
+              <span id="note-text-${cn}" class="text-gray-500 text-xs">${c.notes || '—'}</span>
+              <button onclick="editNote('${cn}','${noteVal}')"
                 class="text-gray-700 hover:text-gray-400 text-xs transition-colors" title="ערוך הערה">✏️</button>
             </div>
           </td>
-          <td class="px-2 py-3">
+          <td class="px-2 py-3" onclick="event.stopPropagation()">
             <div class="flex items-center gap-1">
-              <button onclick="markEmptyUI('${c.cardNumber}')" title="סמן כריק"
-                class="text-gray-600 hover:text-gray-300 text-base transition-colors px-1.5 py-1 rounded-lg hover:bg-white/10">
-                📭
-              </button>
-              <button onclick="archiveCardUI('${c.cardNumber}')" title="העבר לארכיון"
-                class="text-amber-600 hover:text-amber-400 text-base transition-colors px-1.5 py-1 rounded-lg hover:bg-amber-500/10">
-                🗄
-              </button>
+              <button onclick="markEmptyUI('${cn}')" title="סמן כריק"
+                class="text-gray-600 hover:text-gray-300 text-base transition-colors px-1.5 py-1 rounded-lg hover:bg-white/10">📭</button>
+              <button onclick="archiveCardUI('${cn}')" title="העבר לארכיון"
+                class="text-amber-600 hover:text-amber-400 text-base transition-colors px-1.5 py-1 rounded-lg hover:bg-amber-500/10">🗄</button>
             </div>
           </td>
+        </tr>
+        <tr id="tx-act-${cn}" class="hidden" data-cn="${cn}">
+          <td colspan="7" style="padding:0 12px 12px">${txTableHTML('tx-act-body-' + cn)}</td>
         </tr>`;
     }
 
@@ -439,82 +442,95 @@
       const totalLabel = totalLit ? totalLit[1] + ' ל׳' : '—';
       const litColor   = c.liters <= 10 ? '#f87171' : c.liters <= 30 ? '#fbbf24' : '#9ca3af';
       const litLabel   = c.liters > 0 ? (+c.liters).toLocaleString('he-IL') + ' ל׳' : '<span style="color:#374151;font-size:11px">טוען...</span>';
-      const txs        = c.recentUsages || [];
-      const txRows     = txs.map(t => `
-        <tr style="border-top:1px solid rgba(255,255,255,0.04)">
-          <td class="py-1.5 text-gray-500 text-xs">${t.vehicle || '—'}</td>
-          <td class="py-1.5 text-gray-400 text-xs">${t.date}</td>
-          <td class="py-1.5 text-gray-600 text-xs">${t.time}</td>
-          <td class="py-1.5 text-gray-400 text-xs" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.station}</td>
-          <td class="py-1.5 text-white text-xs font-bold text-left">${t.liters.toFixed(2)}</td>
-        </tr>`).join('');
-      const txSection  = `
-        <tr id="arch-tx-${c.cardNumber}" class="hidden">
-          <td colspan="7" style="padding:0 12px 12px">
-            <table class="w-full text-xs">
-              <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.07)">
-                <th class="pb-1 text-right text-gray-600 font-semibold">רכב</th>
-                <th class="pb-1 text-right text-gray-600 font-semibold">תאריך</th>
-                <th class="pb-1 text-right text-gray-600 font-semibold">שעה</th>
-                <th class="pb-1 text-right text-gray-600 font-semibold">תחנה</th>
-                <th class="pb-1 text-left text-gray-600 font-semibold">ל׳</th>
-              </thead><tbody id="arch-tx-body-${c.cardNumber}">${txRows || '<tr><td colspan="5" class="py-3 text-center text-gray-600 text-xs">טוען...</td></tr>'}</tbody>
-            </table>
-          </td>
-        </tr>`;
+      const cn = c.cardNumber;
       return `
-        <tr id="arch-row-${c.cardNumber}" class="border-t border-white/5 cursor-pointer hover:bg-white/[0.02]"
-          onclick="toggleArchiveTx('${c.cardNumber}')">
+        <tr id="row-arch-${cn}" class="border-t border-white/5 cursor-pointer hover:bg-white/[0.02]"
+          onclick="toggleTx('tx-arch-${cn}','tx-arch-body-${cn}','expand-arch-${cn}')">
           <td class="px-3 py-3 text-gray-400 font-bold text-sm">
-            <span id="arch-expand-${c.cardNumber}" style="color:#374151;font-size:10px;margin-left:4px">▶</span>
-            ${c.cardNumber}
+            <span id="expand-arch-${cn}" style="color:#374151;font-size:10px;margin-left:4px">▶</span>${cn}
           </td>
           <td class="px-3 py-3">${badge}</td>
           <td class="px-3 py-3 text-gray-500 text-sm">${totalLabel}</td>
-          <td class="px-3 py-3 text-sm" id="arch-liters-${c.cardNumber}" style="color:${litColor}">${litLabel}</td>
+          <td class="px-3 py-3 text-sm" id="liters-arch-${cn}" style="color:${litColor}">${litLabel}</td>
           <td class="px-3 py-3 text-gray-600 text-xs">${c.notes || '—'}</td>
-          <td class="px-3 py-3 text-gray-600 text-xs" id="arch-usage-${c.cardNumber}">${c.lastUsage || '<span style="color:#374151;font-size:11px">טוען...</span>'}</td>
+          <td class="px-3 py-3 text-gray-600 text-xs" id="usage-arch-${cn}">${c.lastUsage || '<span style="color:#374151;font-size:11px">טוען...</span>'}</td>
           <td class="px-2 py-3" onclick="event.stopPropagation()">
-            <button onclick="unarchiveCardUI('${c.cardNumber}')"
-              class="text-blue-600 hover:text-blue-400 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-blue-500/10 whitespace-nowrap">
-              ↩ החזר
-            </button>
+            <button onclick="unarchiveCardUI('${cn}')"
+              class="text-blue-600 hover:text-blue-400 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-blue-500/10 whitespace-nowrap">↩ החזר</button>
           </td>
         </tr>
-        ${txSection}`;
+        <tr id="tx-arch-${cn}" class="hidden" data-cn="${cn}">
+          <td colspan="7" style="padding:0 12px 12px">${txTableHTML('tx-arch-body-' + cn)}</td>
+        </tr>`;
     }
 
     function emptyCardRow(c) {
       const badge      = fuelBadge(c.fuelType);
       const totalLit   = (c.cardName || '').match(/(\d+)/);
       const totalLabel = totalLit ? totalLit[1] + ' ל׳' : '—';
+      const cn = c.cardNumber;
       return `
-        <tr id="empty-row-${c.cardNumber}" class="border-t border-white/5 hover:bg-white/[0.02] transition-colors">
-          <td class="px-3 py-3 text-white font-bold text-sm">${c.cardNumber}</td>
+        <tr id="row-emp-${cn}" class="border-t border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer"
+          onclick="toggleTx('tx-emp-${cn}','tx-emp-body-${cn}','expand-emp-${cn}')">
+          <td class="px-3 py-3 text-white font-bold text-sm">
+            <span id="expand-emp-${cn}" style="color:#374151;font-size:10px;margin-left:4px">▶</span>${cn}
+          </td>
           <td class="px-3 py-3">${badge}</td>
           <td class="px-3 py-3 text-gray-500 text-sm">${totalLabel}</td>
           <td class="px-3 py-3 text-gray-600 text-xs">${c.notes || '—'}</td>
-          <td class="px-2 py-3">
+          <td class="px-2 py-3" onclick="event.stopPropagation()">
             <div class="flex items-center gap-1">
-              <button onclick="markNotEmptyUI('${c.cardNumber}')" title="החזר לפעילים"
+              <button onclick="markNotEmptyUI('${cn}')" title="החזר לפעילים"
                 class="text-blue-600 hover:text-blue-400 text-xs font-bold transition-colors px-2 py-1 rounded-lg hover:bg-blue-500/10 whitespace-nowrap">↩ פעיל</button>
-              <button onclick="archiveCardUI('${c.cardNumber}')" title="העבר לארכיון"
+              <button onclick="archiveCardUI('${cn}')" title="העבר לארכיון"
                 class="text-amber-600 hover:text-amber-400 text-base transition-colors px-1.5 py-1 rounded-lg hover:bg-amber-500/10">🗄</button>
             </div>
           </td>
+        </tr>
+        <tr id="tx-emp-${cn}" class="hidden" data-cn="${cn}">
+          <td colspan="5" style="padding:0 12px 12px">${txTableHTML('tx-emp-body-' + cn)}</td>
         </tr>`;
     }
 
-    function toggleArchiveTx(cn) {
-      const row = document.getElementById('arch-tx-' + cn);
-      const ico = document.getElementById('arch-expand-' + cn);
+    // ── Accordion helper — HTML שטיחת עסקאות ──
+    function txTableHTML(bodyId) {
+      return `<table class="w-full text-xs">
+        <thead><tr style="border-bottom:1px solid rgba(255,255,255,0.07)">
+          <th class="pb-1 text-right text-gray-600 font-semibold">רכב</th>
+          <th class="pb-1 text-right text-gray-600 font-semibold">תאריך</th>
+          <th class="pb-1 text-right text-gray-600 font-semibold">שעה</th>
+          <th class="pb-1 text-right text-gray-600 font-semibold">תחנה</th>
+          <th class="pb-1 text-left  text-gray-600 font-semibold">ל׳</th>
+        </tr></thead>
+        <tbody id="${bodyId}">
+          <tr><td colspan="5" class="py-3 text-center text-gray-600 text-xs">טוען...</td></tr>
+        </tbody>
+      </table>`;
+    }
+
+    function txRowsHTML(transactions) {
+      return transactions.map(t => `
+        <tr style="border-top:1px solid rgba(255,255,255,0.04)">
+          <td class="py-1.5 text-gray-500 text-xs">${t.vehicle || '—'}</td>
+          <td class="py-1.5 text-gray-400 text-xs">${t.date}</td>
+          <td class="py-1.5 text-gray-600 text-xs">${t.time}</td>
+          <td class="py-1.5 text-gray-400 text-xs" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.station}</td>
+          <td class="py-1.5 text-white text-xs font-bold text-left">${(+t.liters).toFixed(2)}</td>
+        </tr>`).join('');
+    }
+
+    // ── Unified accordion toggle (כל הטאבים) ──
+    function toggleTx(txId, bodyId, iconId) {
+      const row  = document.getElementById(txId);
+      const ico  = document.getElementById(iconId);
       if (!row) return;
       const nowHidden = row.classList.toggle('hidden');
       if (ico) ico.textContent = nowHidden ? '▶' : '▼';
-      // lazy load מהגיליון בפתיחה ראשונה
+      // lazy load בפתיחה ראשונה בלבד
       if (!nowHidden && !row.dataset.loaded) {
         row.dataset.loaded = '1';
-        const tbody = document.getElementById('arch-tx-body-' + cn);
+        const cn    = row.dataset.cn;
+        const tbody = document.getElementById(bodyId);
         api({ action: 'getArchiveHistory', token: TOKEN, cardNumber: cn })
           .then(res => {
             if (!tbody) return;
@@ -522,14 +538,7 @@
               tbody.innerHTML = '<tr><td colspan="5" class="py-3 text-center text-gray-600 text-xs">אין היסטוריית תדלוקים</td></tr>';
               return;
             }
-            tbody.innerHTML = res.transactions.map(t => `
-              <tr style="border-top:1px solid rgba(255,255,255,0.04)">
-                <td class="py-1.5 text-gray-500 text-xs">${t.vehicle || '—'}</td>
-                <td class="py-1.5 text-gray-400 text-xs">${t.date}</td>
-                <td class="py-1.5 text-gray-600 text-xs">${t.time}</td>
-                <td class="py-1.5 text-gray-400 text-xs" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.station}</td>
-                <td class="py-1.5 text-white text-xs font-bold text-left">${(+t.liters).toFixed(2)}</td>
-              </tr>`).join('');
+            tbody.innerHTML = txRowsHTML(res.transactions);
           }).catch(() => {
             if (tbody) tbody.innerHTML = '<tr><td colspan="5" class="py-3 text-center text-red-500 text-xs">שגיאה בטעינת הנתונים</td></tr>';
           });
@@ -723,7 +732,7 @@
       const card = allCards.find(c => c.cardNumber === cn);
       if (!card) return;
       card.isArchived = true;
-      card.recentUsages = card.recentUsages || [];
+      card.isEmpty    = false;
       applySearch(); // רנדר מחדש עם החיפוש הנוכחי
       showToast('✅ כרטיס ' + cn + ' הועבר לארכיון');
 
@@ -738,28 +747,20 @@
           if (m.fuelType)   card.fuelType   = m.fuelType;
           if (m.recentUsages) card.recentUsages = m.recentUsages;
           // עדכן DOM של שורת הארכיון
-          const litEl = document.getElementById('arch-liters-' + cn);
-          const useEl = document.getElementById('arch-usage-' + cn);
+          const litEl = document.getElementById('liters-arch-' + cn);
+          const useEl = document.getElementById('usage-arch-' + cn);
           if (litEl && m.liters !== undefined) {
             const col = m.liters <= 10 ? '#f87171' : m.liters <= 30 ? '#fbbf24' : '#9ca3af';
             litEl.style.color = col;
             litEl.textContent = (+m.liters).toLocaleString('he-IL') + ' ל׳';
           }
           if (useEl && m.lastUsage) useEl.textContent = m.lastUsage;
-          // עדכן accordion עם transactions (השורה תמיד קיימת)
+          // עדכן accordion (השורה תמיד קיימת)
           if (m.recentUsages && m.recentUsages.length) {
-            const tbody = document.getElementById('arch-tx-body-' + cn);
+            const tbody = document.getElementById('tx-arch-body-' + cn);
             if (tbody) {
-              tbody.innerHTML = m.recentUsages.map(t => `
-                <tr style="border-top:1px solid rgba(255,255,255,0.04)">
-                  <td class="py-1.5 text-gray-500 text-xs">${t.vehicle || '—'}</td>
-                  <td class="py-1.5 text-gray-400 text-xs">${t.date}</td>
-                  <td class="py-1.5 text-gray-600 text-xs">${t.time}</td>
-                  <td class="py-1.5 text-gray-400 text-xs" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.station}</td>
-                  <td class="py-1.5 text-white text-xs font-bold text-left">${(+t.liters).toFixed(2)}</td>
-                </tr>`).join('');
-              // סמן כנטען כדי שהlazy-load לא ידרוס
-              const txRow = document.getElementById('arch-tx-' + cn);
+              tbody.innerHTML = txRowsHTML(m.recentUsages);
+              const txRow = document.getElementById('tx-arch-' + cn);
               if (txRow) txRow.dataset.loaded = '1';
             }
           }
@@ -776,6 +777,17 @@
       applySearch();
       showToast('↩ כרטיס ' + cn + ' הוחזר לפעילים');
       api({ action: 'unarchiveCard', token: TOKEN, cardNumber: cn }).catch(() => {});
+    }
+
+    // ── Unarchive → ריקים (optimistic) ──
+    function unarchiveToEmptyUI(cn) {
+      const card = allCards.find(c => c.cardNumber === cn);
+      if (!card) return;
+      card.isArchived = false;
+      card.isEmpty    = true;
+      applySearch();
+      showToast('📭 כרטיס ' + cn + ' הועבר לריקים');
+      api({ action: 'unarchiveToEmpty', token: TOKEN, cardNumber: cn }).catch(() => {});
     }
 
     // ── Mark Empty (optimistic) ──
@@ -816,7 +828,8 @@
           { icon: '🗄',  label: 'ארכיון', bg: '#b45309', fn: () => flyOff(() => archiveCardUI(cn)) }
         ],
         archived: [
-          { icon: '↩',  label: 'פעיל',   bg: '#1d4ed8', fn: () => flyOff(() => unarchiveCardUI(cn)) }
+          { icon: '↩',  label: 'פעיל', bg: '#1d4ed8', fn: () => flyOff(() => unarchiveCardUI(cn)) },
+          { icon: '📭', label: 'ריק',  bg: '#374151', fn: () => flyOff(() => unarchiveToEmptyUI(cn)) }
         ]
       };
       const myActions = actionDefs[tabType] || actionDefs.active;

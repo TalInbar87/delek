@@ -137,6 +137,8 @@ class FuelCardsManager {
         sheet.getRange(row, 3).setValue(goodi.litersLeft || 0);
         sheet.getRange(row, 6).setValue(goodi.cardName  || '');
         sheet.getRange(row, 7).setValue(new Date().toISOString());
+        // שמור היסטוריה לגיליון ארכיון תדלוקים
+        this.saveArchiveHistory(cn, goodi.recentUsages || []);
         return {
           cardName:     goodi.cardName,
           fuelType:     goodi.fuelType,
@@ -235,6 +237,20 @@ class FuelCardsManager {
       if (rows[i][0].toString().trim() !== cn) continue;
       sheet.getRange(i + 1, 9).setValue(true);
       sheet.getRange(i + 1, 7).setValue(new Date().toISOString());
+      return true;
+    }
+    throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0');
+  }
+
+  // ── שחרר מארכיב ישירות לריקים ──
+  static unarchiveToEmpty(cardNumber) {
+    const sheet = this._getSheet();
+    const rows  = sheet.getDataRange().getValues();
+    const cn    = cardNumber.toString().trim();
+    for (let i = 1; i < rows.length; i++) {
+      if (rows[i][0].toString().trim() !== cn) continue;
+      sheet.getRange(i + 1, 8).setValue(false); // isArchived = false
+      sheet.getRange(i + 1, 9).setValue(true);  // isEmpty   = true
       return true;
     }
     throw new Error('\u05db\u05e8\u05d8\u05d9\u05e1 ' + cardNumber + ' \u05dc\u05d0 \u05e0\u05de\u05e6\u05d0');

@@ -131,6 +131,13 @@ function doPost(e) {
         return _json({ success: true });
       }
 
+      case 'unarchiveToEmpty': {
+        if (!AdminAuth.verifyToken(data.token)) return _json({ error: 'אין הרשאה' });
+        if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
+        FuelCardsManager.unarchiveToEmpty(data.cardNumber);
+        return _json({ success: true });
+      }
+
       case 'updateNotes': {
         if (!AdminAuth.verifyToken(data.token)) return _json({ error: 'אין הרשאה' });
         if (!data.cardNumber) return _json({ error: 'חסר מספר כרטיס' });
